@@ -236,6 +236,7 @@ def capitulation_probability(
     miner: MinerProfile,
     btc_price: float,
     interest_rate: float = 0.05,
+    difficulty_factor: float = 1.0,
 ) -> float:
     """Estimate the probability that a miner capitulates at a given BTC price.
 
@@ -252,13 +253,15 @@ def capitulation_probability(
         Current BTC price in USD.
     interest_rate : float
         Prevailing interest rate (0.05 = 5%).
+    difficulty_factor : float
+        Current difficulty relative to baseline (< 1 means easier mining).
 
     Returns
     -------
     float
         Capitulation probability in [0, 1].
     """
-    breakeven = calculate_breakeven(miner, btc_price)
+    breakeven = calculate_breakeven(miner, btc_price, difficulty_factor)
 
     # Price distance: how far below breakeven (positive = underwater)
     # Normalized by breakeven for comparability
@@ -303,6 +306,7 @@ def network_security_degradation(
     btc_price: float,
     miners: List[MinerProfile] = DEFAULT_MINERS,
     interest_rate: float = 0.05,
+    difficulty_factor: float = 1.0,
 ) -> float:
     """Calculate aggregate network security degradation.
 
@@ -317,6 +321,8 @@ def network_security_degradation(
         List of miner profiles to evaluate.
     interest_rate : float
         Prevailing interest rate.
+    difficulty_factor : float
+        Current difficulty relative to baseline.
 
     Returns
     -------
@@ -330,7 +336,7 @@ def network_security_degradation(
 
     degradation = 0.0
     for miner in miners:
-        cap_prob = capitulation_probability(miner, btc_price, interest_rate)
+        cap_prob = capitulation_probability(miner, btc_price, interest_rate, difficulty_factor)
         weight = miner.hashrate_share / total_hashrate
         degradation += cap_prob * weight
 
@@ -383,22 +389,19 @@ def simulate_btc_crash(
         row = {"btc_price": price, "difficulty_factor": difficulty_factor}
 
         for miner in miners:
-            # Recalculate breakeven with current difficulty factor
-            be = calculate_breakeven(miner, price, difficulty_factor)
-            cap_prob = capitulation_probability(miner, price, interest_rate)
+            cap_prob = capitulation_probability(miner, price, interest_rate, difficulty_factor)
             row[f"cap_{miner.ticker}"] = cap_prob
 
         row["security_degradation"] = network_security_degradation(
-            price, miners, interest_rate
+            price, miners, interest_rate, difficulty_factor
         )
 
         # DAA feedback: estimate hashrate drop from capitulation,
         # adjust difficulty proportionally for next step
         if daa_enabled and i < len(prices) - 1:
-            # Tracked miners represent ~25% of network; extrapolate
             tracked_share = sum(m.hashrate_share for m in miners)
             surviving_share = sum(
-                m.hashrate_share * (1.0 - capitulation_probability(m, price, interest_rate))
+                m.hashrate_share * (1.0 - capitulation_probability(m, price, interest_rate, difficulty_factor))
                 for m in miners
             )
             # Untracked miners (~75%) assumed to have similar capitulation rate
