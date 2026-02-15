@@ -1,0 +1,2358 @@
+I need a rigorous, PhD-level review of a quantitative research project on Bitcoin Proof-of-Work security risks. The project contains 4 Python simulation models (2,335 lines total).
+
+## Context
+This project models systemic risks in Bitcoin's PoW security through four interconnected simulations. I will paste the source code of all 4 modules below.
+
+## What I need
+
+**A. Mathematical Review** — Are the models (logistic sigmoid for capitulation, saturation curves, HHI) appropriate? Check formulas for correctness, edge cases, numerical stability.
+
+**B. Assumptions Audit** — List ALL assumptions. Rate each: (1) well-justified, (2) needs citation, (3) questionable, (4) likely wrong. Suggest data sources to validate.
+
+**C. Methodology Critique** — Strongest/weakest aspects? What's missing? How to improve?
+
+**D. Literature Gaps** — Key papers to cite? Existing frameworks? Suggest 10-15 essential references.
+
+**E. Results Validation** — Are these plausible: Miner breakeven $69k-$104k, Nakamoto Coefficient 3, pollution saturation 85.5%, institutional cascade -45%?
+
+**F. Paper Quality** — Publishable as working paper? What elevates it to conference quality? Best venues?
+
+## Source Code
+
+### MODULE 1: miner_stress.py
+```python
+"""
+miner_stress.py — Miner Capitulation & Network Security Degradation Model
+==========================================================================
+
+Models the probability that individual Bitcoin miners capitulate under
+adverse price conditions, and aggregates these into a network-level
+security degradation score.
+
+Uses real Q3 2025 financial data for major public miners.
+"""
+
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import List, Optional
+
+import matplotlib
+matplotlib.use("Agg")  # Non-interactive backend for headless environments
+
+import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
+import numpy as np
+import pandas as pd
+from scipy.special import expit  # Logistic sigmoid
+
+
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
+
+BLOCK_REWARD_BTC = 3.125          # Post-April 2024 halving
+BLOCKS_PER_DAY = 144              # Average Bitcoin blocks per day
+SATS_PER_BTC = 1e8
+SECONDS_PER_HOUR = 3600
+JOULES_PER_KWH = 3.6e6
+
+# Network-level assumptions
+NETWORK_HASHRATE_EH = 850         # ~850 EH/s mid-2025 estimate
+
+
+# ---------------------------------------------------------------------------
+# MinerProfile Dataclass
+# ---------------------------------------------------------------------------
+
+@dataclass
+class MinerProfile:
+    """Financial and operational profile for a public Bitcoin miner.
+
+    Attributes
+    ----------
+    name : str
+        Company name.
+    ticker : str
+        Stock ticker symbol.
+    revenue_ttm : float
+        Trailing twelve-month revenue in USD (millions).
+    ebitda : float
+        EBITDA in USD (millions). Negative = operating at a loss.
+    total_debt : float
+        Total debt in USD (millions).
+    cash : float
+        Cash & equivalents in USD (millions).
+    hashrate_share : float
+        Fraction of global hashrate (0–1).
+    power_cost_kwh : float
+        All-in electricity cost in USD per kWh.
+    efficiency_jph : float
+        Mining rig efficiency in joules per terahash (J/TH).
+    """
+    name: str
+    ticker: str
+    revenue_ttm: float        # $M
+    ebitda: float              # $M
+    total_debt: float          # $M
+    cash: float                # $M
+    hashrate_share: float      # 0-1 fraction
+    power_cost_kwh: float      # $/kWh
+    efficiency_jph: float      # J/TH (joules per terahash)
+
+
+# ---------------------------------------------------------------------------
+# Pre-populated Miner Profiles (Q3 2025 approximate)
+# ---------------------------------------------------------------------------
+
+DEFAULT_MINERS: List[MinerProfile] = [
+    MinerProfile(
+        name="TeraWulf",
+        ticker="WULF",
+        revenue_ttm=167.6,
+        ebitda=-35.2,
+        total_debt=1085.0,
+        cash=711.0,
+        hashrate_share=0.035,     # ~30 EH/s
+        power_cost_kwh=0.035,     # Nuclear/hydro advantage
+        efficiency_jph=21.0,      # Antminer S21-class
+    ),
+    MinerProfile(
+        name="Cipher Mining",
+        ticker="CIFR",
+        revenue_ttm=150.0,
+        ebitda=-20.0,
+        total_debt=400.0,
+        cash=100.0,
+        hashrate_share=0.030,     # ~25 EH/s
+        power_cost_kwh=0.045,
+        efficiency_jph=22.0,
+    ),
+    MinerProfile(
+        name="Core Scientific",
+        ticker="CORZ",
+        revenue_ttm=500.0,
+        ebitda=95.0,
+        total_debt=800.0,
+        cash=200.0,
+        hashrate_share=0.040,     # ~34 EH/s
+        power_cost_kwh=0.042,
+        efficiency_jph=23.0,
+    ),
+    MinerProfile(
+        name="Marathon Digital",
+        ticker="MARA",
+        revenue_ttm=387.0,
+        ebitda=48.0,
+        total_debt=1200.0,
+        cash=300.0,
+        hashrate_share=0.060,     # ~50 EH/s
+        power_cost_kwh=0.048,
+        efficiency_jph=24.0,
+    ),
+    MinerProfile(
+        name="Riot Platforms",
+        ticker="RIOT",
+        revenue_ttm=280.0,
+        ebitda=-15.0,
+        total_debt=350.0,
+        cash=600.0,
+        hashrate_share=0.045,     # ~38 EH/s
+        power_cost_kwh=0.038,
+        efficiency_jph=21.5,
+    ),
+    MinerProfile(
+        name="CleanSpark",
+        ticker="CLSK",
+        revenue_ttm=320.0,
+        ebitda=60.0,
+        total_debt=200.0,
+        cash=150.0,
+        hashrate_share=0.040,     # ~34 EH/s
+        power_cost_kwh=0.040,
+        efficiency_jph=22.5,
+    ),
+]
+
+
+# ---------------------------------------------------------------------------
+# Core Functions
+# ---------------------------------------------------------------------------
+
+def calculate_breakeven(
+    miner: MinerProfile,
+    btc_price: float = 100_000.0,
+    difficulty_factor: float = 1.0,
+) -> float:
+    """Calculate the BTC price at which a miner becomes unprofitable.
+
+    The breakeven price is derived from the miner's energy cost per BTC
+    mined, adjusted for operating leverage (EBITDA margin) and difficulty.
+
+    Parameters
+    ----------
+    miner : MinerProfile
+        Miner's financial and operational profile.
+    btc_price : float
+        Current BTC price (used for EBITDA margin context).
+    difficulty_factor : float
+        Multiplier on mining difficulty (1.0 = current, >1 = harder).
+
+    Returns
+    -------
+    float
+        Breakeven BTC price in USD.
+    """
+    # Energy cost per TH per second per day
+    # efficiency_jph (J/TH) tells us joules needed per terahash
+    # Power consumption for 1 TH/s = efficiency_jph watts (since J/s = W)
+    power_per_th_kw = miner.efficiency_jph / 1000.0  # kW per TH/s
+
+    # Daily electricity cost per TH/s
+    daily_power_cost_per_th = power_per_th_kw * 24.0 * miner.power_cost_kwh
+
+    # BTC mined per TH/s per day (simplified)
+    # Total network: NETWORK_HASHRATE_EH * 1e6 TH/s
+    # 1 TH/s share = 1 / (network_hashrate_th)
+    network_hashrate_th = NETWORK_HASHRATE_EH * 1e6  # TH/s
+    btc_per_th_per_day = (BLOCK_REWARD_BTC * BLOCKS_PER_DAY) / network_hashrate_th
+
+    # Adjust for difficulty changes
+    btc_per_th_per_day /= difficulty_factor
+
+    # Raw energy breakeven: price at which energy cost = mining revenue
+    if btc_per_th_per_day <= 0:
+        return float("inf")
+
+    energy_breakeven = daily_power_cost_per_th / btc_per_th_per_day
+
+    # Adjust for operating overhead using EBITDA margin
+    # If EBITDA margin is negative, the company is spending more than revenue
+    # on operations, pushing breakeven higher
+    if miner.revenue_ttm > 0:
+        ebitda_margin = miner.ebitda / miner.revenue_ttm
+    else:
+        ebitda_margin = -1.0
+
+    # Operating overhead factor: low/negative margin → higher breakeven
+    # A miner with -20% EBITDA margin needs ~20% more revenue to cover costs
+    overhead_factor = 1.0 / max(0.1, 0.5 + 0.5 * ebitda_margin)
+
+    return energy_breakeven * overhead_factor
+
+
+def capitulation_probability(
+    miner: MinerProfile,
+    btc_price: float,
+    interest_rate: float = 0.05,
+) -> float:
+    """Estimate the probability that a miner capitulates at a given BTC price.
+
+    Uses a logistic function combining:
+    - Distance of BTC price from the miner's breakeven price
+    - Debt-to-cash ratio (leverage pressure)
+    - Interest rate environment (refinancing risk)
+
+    Parameters
+    ----------
+    miner : MinerProfile
+        Miner's financial and operational profile.
+    btc_price : float
+        Current BTC price in USD.
+    interest_rate : float
+        Prevailing interest rate (0.05 = 5%).
+
+    Returns
+    -------
+    float
+        Capitulation probability in [0, 1].
+    """
+    breakeven = calculate_breakeven(miner, btc_price)
+
+    # Price distance: how far below breakeven (positive = underwater)
+    # Normalized by breakeven for comparability
+    if breakeven > 0:
+        price_ratio = btc_price / breakeven
+    else:
+        return 0.0
+
+    # Debt pressure: high debt/low cash amplifies capitulation risk
+    if miner.cash > 0:
+        debt_pressure = miner.total_debt / miner.cash
+    else:
+        debt_pressure = 10.0  # Maximum pressure if no cash
+
+    # Normalize debt pressure (typical range 0.5-5.0, map to 0-2 contribution)
+    debt_score = np.clip(debt_pressure / 3.0, 0.0, 2.0)
+
+    # Interest rate factor: higher rates increase refinancing pressure
+    # Baseline at 5%, each 1% above adds pressure
+    rate_pressure = max(0.0, (interest_rate - 0.03) * 10.0)
+
+    # Cash runway: months of operation remaining at current burn rate
+    if miner.ebitda < 0:
+        monthly_burn = abs(miner.ebitda) / 12.0
+        runway_months = miner.cash / monthly_burn if monthly_burn > 0 else 120
+    else:
+        runway_months = 120  # Profitable, long runway
+
+    # Runway score: shorter runway → higher capitulation risk
+    runway_score = np.clip(1.0 - runway_months / 24.0, 0.0, 1.0)
+
+    # Composite logistic input
+    # Negative = safe (price well above breakeven)
+    # Positive = at risk (price below breakeven + high leverage)
+    k = 5.0  # Steepness of the logistic curve
+    z = -k * (price_ratio - 1.0) + debt_score + rate_pressure + runway_score
+
+    return float(expit(z))
+
+
+def network_security_degradation(
+    btc_price: float,
+    miners: List[MinerProfile] = DEFAULT_MINERS,
+    interest_rate: float = 0.05,
+) -> float:
+    """Calculate aggregate network security degradation.
+
+    Weighted sum of capitulation probabilities across all tracked miners,
+    weighted by each miner's share of total network hashrate.
+
+    Parameters
+    ----------
+    btc_price : float
+        Current BTC price in USD.
+    miners : list of MinerProfile
+        List of miner profiles to evaluate.
+    interest_rate : float
+        Prevailing interest rate.
+
+    Returns
+    -------
+    float
+        Degradation score in [0, 1]. 0 = no risk, 1 = total capitulation
+        of tracked miners.
+    """
+    total_hashrate = sum(m.hashrate_share for m in miners)
+    if total_hashrate == 0:
+        return 0.0
+
+    degradation = 0.0
+    for miner in miners:
+        cap_prob = capitulation_probability(miner, btc_price, interest_rate)
+        weight = miner.hashrate_share / total_hashrate
+        degradation += cap_prob * weight
+
+    return degradation
+
+
+def simulate_btc_crash(
+    start_price: float = 100_000,
+    end_price: float = 20_000,
+    steps: int = 50,
+    miners: List[MinerProfile] = DEFAULT_MINERS,
+    interest_rate: float = 0.05,
+) -> pd.DataFrame:
+    """Simulate a BTC price decline and track miner capitulation dynamics.
+
+    Parameters
+    ----------
+    start_price : float
+        Starting BTC price.
+    end_price : float
+        Ending BTC price.
+    steps : int
+        Number of price steps in the simulation.
+    miners : list of MinerProfile
+        Miner profiles to evaluate.
+    interest_rate : float
+        Prevailing interest rate.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with columns: btc_price, per-miner capitulation probs,
+        and aggregate security degradation.
+    """
+    prices = np.linspace(start_price, end_price, steps)
+
+    records = []
+    for price in prices:
+        row = {"btc_price": price}
+
+        for miner in miners:
+            cap_prob = capitulation_probability(miner, price, interest_rate)
+            row[f"cap_{miner.ticker}"] = cap_prob
+
+        row["security_degradation"] = network_security_degradation(
+            price, miners, interest_rate
+        )
+        records.append(row)
+
+    return pd.DataFrame(records)
+
+
+def plot_stress_test(
+    simulation_df: pd.DataFrame,
+    output_path: Optional[str] = None,
+    miners: List[MinerProfile] = DEFAULT_MINERS,
+) -> None:
+    """Create a visualization of the miner stress test results.
+
+    Produces a two-panel chart:
+    - Top: Per-miner capitulation probability curves
+    - Bottom: Aggregate network security degradation
+
+    Parameters
+    ----------
+    simulation_df : pd.DataFrame
+        Output from simulate_btc_crash().
+    output_path : str, optional
+        File path to save the plot. If None, displays interactively.
+    miners : list of MinerProfile
+        Miner profiles (for labels and styling).
+    """
+    fig, (ax1, ax2) = plt.subplots(
+        2, 1, figsize=(14, 10), height_ratios=[2, 1], sharex=True
+    )
+    fig.suptitle(
+        "Bitcoin Miner Capitulation Stress Test",
+        fontsize=16,
+        fontweight="bold",
+        y=0.95,
+    )
+
+    prices = simulation_df["btc_price"]
+
+    # Color palette
+    colors = ["#e74c3c", "#3498db", "#2ecc71", "#f39c12", "#9b59b6", "#1abc9c"]
+
+    # --- Top panel: Per-miner capitulation probabilities ---
+    for i, miner in enumerate(miners):
+        col = f"cap_{miner.ticker}"
+        if col in simulation_df.columns:
+            ax1.plot(
+                prices,
+                simulation_df[col] * 100,
+                label=f"{miner.ticker} ({miner.name})",
+                color=colors[i % len(colors)],
+                linewidth=2.0,
+                alpha=0.85,
+            )
+
+    ax1.set_ylabel("Capitulation Probability (%)", fontsize=12)
+    ax1.set_title("Per-Miner Capitulation Probability", fontsize=13, pad=10)
+    ax1.legend(loc="upper right", framealpha=0.9, fontsize=9)
+    ax1.set_ylim(-2, 102)
+    ax1.grid(True, alpha=0.3)
+    ax1.axhline(y=50, color="gray", linestyle="--", alpha=0.5, label="_50% threshold")
+
+    # Add breakeven markers
+    for i, miner in enumerate(miners):
+        be = calculate_breakeven(miner)
+        if prices.min() <= be <= prices.max():
+            ax1.axvline(
+                x=be, color=colors[i % len(colors)],
+                linestyle=":", alpha=0.4, linewidth=1.0
+            )
+
+    # --- Bottom panel: Aggregate security degradation ---
+    ax2.fill_between(
+        prices,
+        simulation_df["security_degradation"] * 100,
+        alpha=0.3,
+        color="#e74c3c",
+    )
+    ax2.plot(
+        prices,
+        simulation_df["security_degradation"] * 100,
+        color="#e74c3c",
+        linewidth=2.5,
+    )
+    ax2.set_xlabel("BTC Price (USD)", fontsize=12)
+    ax2.set_ylabel("Security Degradation (%)", fontsize=12)
+    ax2.set_title("Aggregate Network Security Degradation", fontsize=13, pad=10)
+    ax2.set_ylim(-2, 102)
+    ax2.grid(True, alpha=0.3)
+
+    # Format x-axis as currency
+    ax2.xaxis.set_major_formatter(mticker.FuncFormatter(
+        lambda x, p: f"${x:,.0f}"
+    ))
+    plt.xticks(rotation=45)
+
+    # Add danger zones
+    for ax in [ax2]:
+        ax.axhspan(0, 15, alpha=0.05, color="green")
+        ax.axhspan(15, 40, alpha=0.05, color="yellow")
+        ax.axhspan(40, 100, alpha=0.08, color="red")
+
+    plt.tight_layout(rect=[0, 0, 1, 0.93])
+
+    if output_path:
+        os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+        fig.savefig(output_path, dpi=150, bbox_inches="tight")
+        print(f"  📊 Plot saved to {output_path}")
+
+    plt.close(fig)
+
+
+# ---------------------------------------------------------------------------
+# Main Entry Point
+# ---------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    print("=" * 72)
+    print("  ⛏️  Bitcoin Miner Capitulation Stress Test")
+    print("  Model: powsec-models v0.1.0")
+    print("=" * 72)
+
+    # --- Breakeven Summary ---
+    print("\n📋 Miner Breakeven Prices (current difficulty):\n")
+    print(f"  {'Ticker':<8} {'Company':<20} {'Breakeven':>12} {'EBITDA Margin':>14} {'Debt/Cash':>10}")
+    print(f"  {'─' * 8} {'─' * 20} {'─' * 12} {'─' * 14} {'─' * 10}")
+
+    for m in DEFAULT_MINERS:
+        be = calculate_breakeven(m)
+        margin = m.ebitda / m.revenue_ttm * 100 if m.revenue_ttm > 0 else 0
+        dc = m.total_debt / m.cash if m.cash > 0 else float("inf")
+        print(f"  {m.ticker:<8} {m.name:<20} ${be:>10,.0f} {margin:>13.1f}% {dc:>9.1f}x")
+
+    # --- Simulation ---
+    print("\n🔄 Running crash simulation: $100,000 → $20,000 ...")
+    df = simulate_btc_crash(
+        start_price=100_000,
+        end_price=20_000,
+        steps=50,
+    )
+
+    # --- Key Price Points ---
+    key_prices = [100_000, 80_000, 60_000, 50_000, 40_000, 30_000, 20_000]
+    print("\n📊 Capitulation Probabilities at Key Price Points:\n")
+
+    header = f"  {'Price':>10} |"
+    for m in DEFAULT_MINERS:
+        header += f" {m.ticker:>6} |"
+    header += f" {'Degrad':>7} |"
+    print(header)
+    print(f"  {'─' * 10}-+" + ("+".join(["─" * 8] * len(DEFAULT_MINERS))) + "+─" + "─" * 7 + "─+")
+
+    for price in key_prices:
+        # Find closest price in simulation
+        idx = (df["btc_price"] - price).abs().idxmin()
+        row = df.iloc[idx]
+
+        line = f"  ${price:>8,} |"
+        for m in DEFAULT_MINERS:
+            cap = row[f"cap_{m.ticker}"] * 100
+            line += f" {cap:>5.1f}% |"
+        deg = row["security_degradation"] * 100
+        line += f"  {deg:>5.1f}% |"
+        print(line)
+
+    # --- Save Plot ---
+    script_dir = Path(__file__).parent
+    output_dir = script_dir / "output"
+    output_dir.mkdir(exist_ok=True)
+    output_path = output_dir / "stress_test.png"
+
+    print(f"\n💾 Saving visualization...")
+    plot_stress_test(df, output_path=str(output_path))
+
+    # --- Save CSV ---
+    csv_path = output_dir / "stress_test_data.csv"
+    df.to_csv(csv_path, index=False)
+    print(f"  📄 Data saved to {csv_path}")
+
+    print(f"\n{'=' * 72}")
+    print("  ✅ Stress test complete.")
+    print(f"{'=' * 72}")
+```
+
+### MODULE 2: content_pollution.py
+```python
+"""
+content_pollution.py — Blockchain Pollution Probability Model
+=============================================================
+
+Models the probability that Bitcoin blocks contain "toxic" content
+(illegal material via Ordinals/inscriptions, OP_RETURN abuse, etc.)
+and projects a saturation curve over time.
+
+Institutional compliance frameworks may treat polluted blocks as
+a liability — this model quantifies the risk trajectory.
+"""
+
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass
+from pathlib import Path
+from typing import List, Optional, Tuple
+
+import matplotlib
+matplotlib.use("Agg")
+
+import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
+import numpy as np
+import pandas as pd
+from scipy.optimize import curve_fit
+from scipy.special import expit
+
+
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
+
+MAX_BLOCK_SIZE_MB = 4.0           # SegWit theoretical max (weight units)
+TYPICAL_BLOCK_SIZE_MB = 1.8       # Average observed mid-2025
+BLOCKS_PER_DAY = 144
+BLOCKS_PER_YEAR = BLOCKS_PER_DAY * 365
+TOTAL_BLOCKS_2025 = 880_000       # Approximate block height mid-2025
+
+
+# ---------------------------------------------------------------------------
+# Data Classes
+# ---------------------------------------------------------------------------
+
+@dataclass
+class BlockSnapshot:
+    """A snapshot of blockchain content metrics for a given period.
+
+    Attributes
+    ----------
+    date : str
+        ISO date string (YYYY-MM-DD).
+    avg_block_size_mb : float
+        Average block size in megabytes.
+    op_return_pct : float
+        Percentage of transactions using OP_RETURN (0–100).
+    inscription_count : int
+        Number of Ordinals inscriptions in the period.
+    inscription_size_mb : float
+        Total inscription data size in megabytes.
+    avg_fee_sat_vb : float
+        Average transaction fee in sat/vB.
+    flagged_content_count : int
+        Number of inscriptions flagged as potentially problematic.
+    total_transactions : int
+        Total transactions in the period.
+    """
+    date: str
+    avg_block_size_mb: float
+    op_return_pct: float
+    inscription_count: int
+    inscription_size_mb: float
+    avg_fee_sat_vb: float
+    flagged_content_count: int
+    total_transactions: int
+
+
+@dataclass
+class PollutionResult:
+    """Result of pollution probability analysis for a single snapshot.
+
+    Attributes
+    ----------
+    date : str
+        ISO date string.
+    block_utilization : float
+        Fraction of max block space used (0–1).
+    inscription_density : float
+        Inscriptions per block.
+    pollution_probability : float
+        Estimated probability a random block contains toxic content (0–1).
+    cumulative_tainted_pct : float
+        Estimated percentage of all historical blocks that are tainted.
+    fee_displacement_ratio : float
+        Ratio of inscription fees to financial transaction fees.
+    """
+    date: str
+    block_utilization: float
+    inscription_density: float
+    pollution_probability: float
+    cumulative_tainted_pct: float
+    fee_displacement_ratio: float
+
+
+# ---------------------------------------------------------------------------
+# Synthetic Historical Data (realistic estimates)
+# ---------------------------------------------------------------------------
+
+DEFAULT_SNAPSHOTS: List[BlockSnapshot] = [
+    # Pre-Ordinals baseline
+    BlockSnapshot("2022-06-01", 1.3, 1.8, 0, 0.0, 12.0, 0, 280_000),
+    BlockSnapshot("2022-12-01", 1.2, 1.7, 0, 0.0, 8.0, 0, 260_000),
+    # Ordinals launch wave
+    BlockSnapshot("2023-02-01", 1.5, 2.0, 5_000, 15.0, 18.0, 5, 300_000),
+    BlockSnapshot("2023-05-01", 2.2, 2.5, 120_000, 450.0, 85.0, 180, 450_000),
+    BlockSnapshot("2023-08-01", 1.8, 2.2, 80_000, 280.0, 35.0, 120, 380_000),
+    BlockSnapshot("2023-11-01", 2.0, 2.8, 200_000, 800.0, 65.0, 350, 420_000),
+    # 2024: post-halving, BRC-20, Runes
+    BlockSnapshot("2024-02-01", 2.3, 3.2, 350_000, 1400.0, 90.0, 600, 480_000),
+    BlockSnapshot("2024-05-01", 2.5, 3.5, 500_000, 2200.0, 120.0, 950, 520_000),
+    BlockSnapshot("2024-08-01", 2.1, 3.0, 280_000, 1100.0, 55.0, 500, 400_000),
+    BlockSnapshot("2024-11-01", 2.4, 3.3, 420_000, 1800.0, 75.0, 780, 460_000),
+    # 2025: maturation phase
+    BlockSnapshot("2025-02-01", 2.6, 3.8, 550_000, 2500.0, 95.0, 1100, 500_000),
+    BlockSnapshot("2025-05-01", 2.7, 4.0, 600_000, 2800.0, 110.0, 1300, 510_000),
+]
+
+
+# ---------------------------------------------------------------------------
+# Core Functions
+# ---------------------------------------------------------------------------
+
+def logistic_saturation(
+    t: np.ndarray,
+    capacity: float,
+    rate: float,
+    midpoint: float,
+) -> np.ndarray:
+    """Logistic growth model for pollution saturation.
+
+    Parameters
+    ----------
+    t : np.ndarray
+        Time variable (e.g. months since start).
+    capacity : float
+        Maximum saturation level (asymptote).
+    rate : float
+        Growth rate.
+    midpoint : float
+        Time at which growth is at 50% of capacity.
+
+    Returns
+    -------
+    np.ndarray
+        Saturation values at each time point.
+    """
+    return capacity * expit(rate * (t - midpoint))
+
+
+def calculate_pollution_probability(snapshot: BlockSnapshot) -> float:
+    """Estimate the probability that a random block in this period is 'toxic'.
+
+    Combines multiple risk factors:
+    - Inscription density relative to block count
+    - Flagged content ratio
+    - Block utilization pressure
+
+    Parameters
+    ----------
+    snapshot : BlockSnapshot
+        Blockchain metrics for the period.
+
+    Returns
+    -------
+    float
+        Pollution probability in [0, 1].
+    """
+    blocks_in_period = BLOCKS_PER_DAY * 30  # ~monthly snapshots
+
+    # Factor 1: Inscription density (inscriptions per block)
+    inscription_density = snapshot.inscription_count / max(blocks_in_period, 1)
+    # Normalize: 100+ inscriptions/block → high density
+    density_score = min(inscription_density / 100.0, 1.0)
+
+    # Factor 2: Flagged content ratio
+    if snapshot.inscription_count > 0:
+        flag_ratio = snapshot.flagged_content_count / snapshot.inscription_count
+    else:
+        flag_ratio = 0.0
+    # Scale up: even 0.2% flagged is significant
+    flag_score = min(flag_ratio * 50.0, 1.0)
+
+    # Factor 3: Block utilization (fuller blocks = more inscription pressure)
+    utilization = snapshot.avg_block_size_mb / MAX_BLOCK_SIZE_MB
+    utilization_score = utilization ** 2  # Quadratic — high utilization amplifies risk
+
+    # Factor 4: OP_RETURN abuse (above 2% is elevated)
+    op_return_score = min(snapshot.op_return_pct / 8.0, 1.0)
+
+    # Weighted combination
+    raw_score = (
+        0.35 * density_score
+        + 0.30 * flag_score
+        + 0.20 * utilization_score
+        + 0.15 * op_return_score
+    )
+
+    # Apply sigmoid for smooth probability
+    return float(expit(6.0 * (raw_score - 0.3)))
+
+
+def estimate_cumulative_tainted(
+    snapshot: BlockSnapshot,
+    total_blocks: int = TOTAL_BLOCKS_2025,
+) -> float:
+    """Estimate the cumulative percentage of all blocks that are tainted.
+
+    A block is considered 'tainted' if it contains at least one inscription
+    that could be flagged as problematic content.
+
+    Parameters
+    ----------
+    snapshot : BlockSnapshot
+        Current period metrics.
+    total_blocks : int
+        Total blockchain height.
+
+    Returns
+    -------
+    float
+        Percentage of all historical blocks estimated as tainted (0–100).
+    """
+    # Rough estimate: flagged inscriptions spread across blocks
+    # Assume ~70% of flagged inscriptions are in unique blocks
+    tainted_blocks_estimate = snapshot.flagged_content_count * 0.7
+
+    # Running cumulative (simplified — in reality would aggregate)
+    cumulative_pct = (tainted_blocks_estimate / total_blocks) * 100.0
+
+    return min(cumulative_pct, 100.0)
+
+
+def calculate_fee_displacement(snapshot: BlockSnapshot) -> float:
+    """Calculate the ratio of block space used by inscriptions vs financial txs.
+
+    Parameters
+    ----------
+    snapshot : BlockSnapshot
+        Blockchain metrics.
+
+    Returns
+    -------
+    float
+        Fee displacement ratio (>1 means inscriptions dominate).
+    """
+    if snapshot.inscription_size_mb <= 0:
+        return 0.0
+
+    blocks_in_period = BLOCKS_PER_DAY * 30
+    total_block_space_mb = blocks_in_period * snapshot.avg_block_size_mb
+
+    if total_block_space_mb <= 0:
+        return 0.0
+
+    inscription_share = snapshot.inscription_size_mb / total_block_space_mb
+    financial_share = 1.0 - inscription_share
+
+    if financial_share <= 0.01:
+        return 100.0
+
+    return inscription_share / financial_share
+
+
+def analyze_snapshots(
+    snapshots: List[BlockSnapshot] = DEFAULT_SNAPSHOTS,
+) -> pd.DataFrame:
+    """Run pollution analysis across all snapshots.
+
+    Parameters
+    ----------
+    snapshots : list of BlockSnapshot
+        Historical blockchain metrics.
+
+    Returns
+    -------
+    pd.DataFrame
+        Analysis results for each snapshot period.
+    """
+    results = []
+    for snap in snapshots:
+        blocks_in_period = BLOCKS_PER_DAY * 30
+        inscription_density = snap.inscription_count / max(blocks_in_period, 1)
+        utilization = snap.avg_block_size_mb / MAX_BLOCK_SIZE_MB
+
+        result = PollutionResult(
+            date=snap.date,
+            block_utilization=utilization,
+            inscription_density=inscription_density,
+            pollution_probability=calculate_pollution_probability(snap),
+            cumulative_tainted_pct=estimate_cumulative_tainted(snap),
+            fee_displacement_ratio=calculate_fee_displacement(snap),
+        )
+        results.append(result)
+
+    records = [
+        {
+            "date": r.date,
+            "block_utilization": r.block_utilization,
+            "inscription_density": r.inscription_density,
+            "pollution_probability": r.pollution_probability,
+            "cumulative_tainted_pct": r.cumulative_tainted_pct,
+            "fee_displacement_ratio": r.fee_displacement_ratio,
+        }
+        for r in results
+    ]
+
+    return pd.DataFrame(records)
+
+
+def fit_saturation_curve(
+    df: pd.DataFrame,
+) -> Tuple[np.ndarray, np.ndarray, dict]:
+    """Fit a logistic saturation curve to pollution probability over time.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Analysis results from analyze_snapshots().
+
+    Returns
+    -------
+    tuple
+        (t_forecast, y_forecast, params) — time array, fitted values,
+        and fitted parameter dict.
+    """
+    t = np.arange(len(df), dtype=float)
+    y = df["pollution_probability"].values
+
+    try:
+        popt, _ = curve_fit(
+            logistic_saturation,
+            t,
+            y,
+            p0=[0.8, 0.5, 6.0],
+            bounds=([0.01, 0.01, 0.0], [1.0, 5.0, 50.0]),
+            maxfev=10_000,
+        )
+    except RuntimeError:
+        popt = np.array([0.8, 0.3, 6.0])
+
+    params = {"capacity": popt[0], "rate": popt[1], "midpoint": popt[2]}
+
+    # Forecast 24 months ahead
+    t_forecast = np.linspace(0, len(df) + 24, 200)
+    y_forecast = logistic_saturation(t_forecast, *popt)
+
+    return t_forecast, y_forecast, params
+
+
+def plot_pollution_analysis(
+    df: pd.DataFrame,
+    t_forecast: np.ndarray,
+    y_forecast: np.ndarray,
+    saturation_params: dict,
+    output_path: Optional[str] = None,
+) -> None:
+    """Create a multi-panel visualization of blockchain pollution analysis.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Analysis results.
+    t_forecast : np.ndarray
+        Time array for saturation curve.
+    y_forecast : np.ndarray
+        Fitted saturation curve values.
+    saturation_params : dict
+        Fitted logistic parameters.
+    output_path : str, optional
+        File path to save the plot.
+    """
+    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+    fig.suptitle(
+        "Bitcoin Blockchain Content Pollution Analysis",
+        fontsize=16,
+        fontweight="bold",
+        y=0.98,
+    )
+
+    dates = pd.to_datetime(df["date"])
+
+    # --- Panel 1: Pollution Probability + Saturation Curve ---
+    ax1 = axes[0, 0]
+    ax1.scatter(
+        range(len(df)),
+        df["pollution_probability"] * 100,
+        color="#e74c3c",
+        s=60,
+        zorder=5,
+        label="Observed",
+    )
+    ax1.plot(
+        t_forecast,
+        y_forecast * 100,
+        color="#e74c3c",
+        linewidth=2,
+        alpha=0.7,
+        linestyle="--",
+        label=f"Saturation fit (cap={saturation_params['capacity']:.1%})",
+    )
+    ax1.axhline(
+        y=saturation_params["capacity"] * 100,
+        color="gray",
+        linestyle=":",
+        alpha=0.5,
+    )
+    ax1.set_ylabel("Toxic Block Probability (%)")
+    ax1.set_title("Pollution Probability & Saturation Curve")
+    ax1.legend(fontsize=9)
+    ax1.grid(True, alpha=0.3)
+    ax1.set_ylim(-5, 105)
+
+    # --- Panel 2: Inscription Density ---
+    ax2 = axes[0, 1]
+    ax2.bar(
+        range(len(df)),
+        df["inscription_density"],
+        color="#3498db",
+        alpha=0.7,
+    )
+    ax2.set_ylabel("Inscriptions per Block")
+    ax2.set_title("Inscription Density Over Time")
+    ax2.grid(True, alpha=0.3, axis="y")
+
+    # --- Panel 3: Block Utilization ---
+    ax3 = axes[1, 0]
+    ax3.fill_between(
+        range(len(df)),
+        df["block_utilization"] * 100,
+        alpha=0.3,
+        color="#2ecc71",
+    )
+    ax3.plot(
+        range(len(df)),
+        df["block_utilization"] * 100,
+        color="#2ecc71",
+        linewidth=2,
+    )
+    ax3.axhline(y=100, color="red", linestyle="--", alpha=0.5, label="Max capacity")
+    ax3.set_ylabel("Block Utilization (%)")
+    ax3.set_title("Block Space Utilization")
+    ax3.legend(fontsize=9)
+    ax3.grid(True, alpha=0.3)
+    ax3.set_ylim(0, 110)
+
+    # --- Panel 4: Fee Displacement ---
+    ax4 = axes[1, 1]
+    ax4.bar(
+        range(len(df)),
+        df["fee_displacement_ratio"],
+        color="#f39c12",
+        alpha=0.7,
+    )
+    ax4.axhline(y=1.0, color="red", linestyle="--", alpha=0.5, label="Parity line")
+    ax4.set_ylabel("Inscription / Financial Ratio")
+    ax4.set_title("Fee Displacement Ratio")
+    ax4.legend(fontsize=9)
+    ax4.grid(True, alpha=0.3, axis="y")
+
+    # X-axis labels for all panels
+    date_labels = [d.strftime("%b %y") for d in dates]
+    for ax in axes.flat:
+        ax.set_xticks(range(len(df)))
+        ax.set_xticklabels(date_labels, rotation=45, fontsize=8)
+
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+
+    if output_path:
+        os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+        fig.savefig(output_path, dpi=150, bbox_inches="tight")
+        print(f"  📊 Plot saved to {output_path}")
+
+    plt.close(fig)
+
+
+# ---------------------------------------------------------------------------
+# Main Entry Point
+# ---------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    print("=" * 72)
+    print("  🧪 Bitcoin Blockchain Content Pollution Analysis")
+    print("  Model: powsec-models v0.1.0")
+    print("=" * 72)
+
+    # --- Run Analysis ---
+    print("\n🔍 Analyzing blockchain content metrics...\n")
+    df = analyze_snapshots()
+
+    # --- Summary Table ---
+    print(f"  {'Date':<12} {'Utiliz':>8} {'Insc/Blk':>10} {'Pollution':>10} "
+          f"{'Tainted%':>10} {'Fee Displ':>10}")
+    print(f"  {'─' * 12} {'─' * 8} {'─' * 10} {'─' * 10} {'─' * 10} {'─' * 10}")
+
+    for _, row in df.iterrows():
+        print(
+            f"  {row['date']:<12} "
+            f"{row['block_utilization']:>7.1%} "
+            f"{row['inscription_density']:>9.1f} "
+            f"{row['pollution_probability']:>9.1%} "
+            f"{row['cumulative_tainted_pct']:>9.4f}% "
+            f"{row['fee_displacement_ratio']:>9.3f}"
+        )
+
+    # --- Saturation Curve Fit ---
+    print("\n📈 Fitting saturation curve...")
+    t_forecast, y_forecast, params = fit_saturation_curve(df)
+    print(f"  Capacity (asymptote):  {params['capacity']:.1%}")
+    print(f"  Growth rate:           {params['rate']:.3f}")
+    print(f"  Midpoint (months):     {params['midpoint']:.1f}")
+
+    # --- Institutional Threshold Analysis ---
+    print("\n⚠️  Institutional Threshold Analysis:")
+    thresholds = [0.10, 0.25, 0.50, 0.75]
+    for thresh in thresholds:
+        if params["capacity"] >= thresh:
+            # Solve for time when saturation curve crosses threshold
+            # expit(rate * (t - midpoint)) = thresh / capacity
+            from scipy.special import logit
+            target = thresh / params["capacity"]
+            if 0 < target < 1:
+                t_cross = params["midpoint"] + logit(target) / params["rate"]
+                months_from_start = max(0, t_cross)
+                print(f"  {thresh:>5.0%} pollution reached at ~month {months_from_start:.0f} "
+                      f"from baseline")
+            else:
+                print(f"  {thresh:>5.0%} pollution: already exceeded or unreachable")
+        else:
+            print(f"  {thresh:>5.0%} pollution: above saturation capacity ({params['capacity']:.0%})")
+
+    # --- Save Plot ---
+    script_dir = Path(__file__).parent
+    output_dir = script_dir / "output"
+    output_dir.mkdir(exist_ok=True)
+    output_path = output_dir / "content_pollution.png"
+
+    print(f"\n💾 Saving visualization...")
+    plot_pollution_analysis(df, t_forecast, y_forecast, params, str(output_path))
+
+    # --- Save CSV ---
+    csv_path = output_dir / "content_pollution_data.csv"
+    df.to_csv(csv_path, index=False)
+    print(f"  📄 Data saved to {csv_path}")
+
+    print(f"\n{'=' * 72}")
+    print("  ✅ Content pollution analysis complete.")
+    print(f"{'=' * 72}")
+```
+
+### MODULE 3: hashrate_concentration.py
+```python
+"""
+hashrate_concentration.py — Censorship Risk Model
+===================================================
+
+Models Bitcoin's censorship resistance by analyzing mining pool
+concentration, geographic distribution, and entity control.
+
+Computes the Nakamoto Coefficient, a Censorship-Resistance Score,
+and estimates the cost of targeted transaction censorship.
+"""
+
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass
+from pathlib import Path
+from typing import List, Optional
+
+import matplotlib
+matplotlib.use("Agg")
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
+
+NETWORK_HASHRATE_EH = 850         # ~850 EH/s mid-2025
+BLOCK_REWARD_BTC = 3.125
+BLOCKS_PER_DAY = 144
+BTC_PRICE_USD = 100_000           # Reference price
+
+
+# ---------------------------------------------------------------------------
+# Data Classes
+# ---------------------------------------------------------------------------
+
+@dataclass
+class MiningPool:
+    """Profile of a Bitcoin mining pool.
+
+    Attributes
+    ----------
+    name : str
+        Pool name.
+    hashrate_share : float
+        Fraction of global hashrate (0–1).
+    jurisdiction : str
+        Primary legal jurisdiction (ISO country code).
+    entity_group : str
+        Parent entity or conglomerate (for entity consolidation).
+    known_kyc : bool
+        Whether the pool enforces KYC on miners.
+    government_linked : bool
+        Whether the pool has known government ties or obligations.
+    """
+    name: str
+    hashrate_share: float
+    jurisdiction: str
+    entity_group: str
+    known_kyc: bool = False
+    government_linked: bool = False
+
+
+@dataclass
+class GeographicRegion:
+    """Geographic concentration of hashrate.
+
+    Attributes
+    ----------
+    region : str
+        Region or country name.
+    hashrate_share : float
+        Fraction of global hashrate in this region (0–1).
+    regulatory_risk : float
+        Regulatory hostility score (0=friendly, 1=hostile).
+    """
+    region: str
+    hashrate_share: float
+    regulatory_risk: float
+
+
+# ---------------------------------------------------------------------------
+# Default Data (mid-2025 estimates)
+# ---------------------------------------------------------------------------
+
+DEFAULT_POOLS: List[MiningPool] = [
+    MiningPool("Foundry USA", 0.30, "US", "DCG", True, False),
+    MiningPool("AntPool", 0.18, "CN", "Bitmain", False, False),
+    MiningPool("F2Pool", 0.12, "CN", "F2Pool", False, False),
+    MiningPool("ViaBTC", 0.08, "CN", "ViaBTC", False, False),
+    MiningPool("Binance Pool", 0.06, "Global", "Binance", True, False),
+    MiningPool("MARA Pool", 0.05, "US", "Marathon", True, False),
+    MiningPool("Braiins Pool", 0.04, "CZ", "Braiins", False, False),
+    MiningPool("SpiderPool", 0.03, "CN", "SpiderPool", False, False),
+    MiningPool("Luxor", 0.03, "US", "Luxor", True, False),
+    MiningPool("SBI Crypto", 0.02, "JP", "SBI", True, True),
+    MiningPool("Other/Unknown", 0.09, "Global", "Decentralized", False, False),
+]
+
+DEFAULT_REGIONS: List[GeographicRegion] = [
+    GeographicRegion("United States", 0.38, 0.4),
+    GeographicRegion("China", 0.21, 0.8),
+    GeographicRegion("Russia", 0.08, 0.7),
+    GeographicRegion("Kazakhstan", 0.06, 0.5),
+    GeographicRegion("Canada", 0.05, 0.3),
+    GeographicRegion("Germany", 0.03, 0.4),
+    GeographicRegion("Malaysia", 0.03, 0.3),
+    GeographicRegion("Iran", 0.02, 0.9),
+    GeographicRegion("Other", 0.14, 0.3),
+]
+
+
+# ---------------------------------------------------------------------------
+# Core Functions
+# ---------------------------------------------------------------------------
+
+def nakamoto_coefficient(pools: List[MiningPool]) -> int:
+    """Calculate the Nakamoto Coefficient for mining pools.
+
+    The Nakamoto Coefficient is the minimum number of entities that
+    together control >50% of the network hashrate.
+
+    Parameters
+    ----------
+    pools : list of MiningPool
+        Mining pool profiles.
+
+    Returns
+    -------
+    int
+        Nakamoto Coefficient (minimum entities for 51% control).
+    """
+    # Group by entity
+    entity_shares: dict[str, float] = {}
+    for pool in pools:
+        entity_shares[pool.entity_group] = (
+            entity_shares.get(pool.entity_group, 0.0) + pool.hashrate_share
+        )
+
+    sorted_shares = sorted(entity_shares.values(), reverse=True)
+
+    cumulative = 0.0
+    for i, share in enumerate(sorted_shares, 1):
+        cumulative += share
+        if cumulative > 0.50:
+            return i
+
+    return len(sorted_shares)
+
+
+def herfindahl_index(pools: List[MiningPool]) -> float:
+    """Calculate the Herfindahl-Hirschman Index (HHI) for mining concentration.
+
+    Parameters
+    ----------
+    pools : list of MiningPool
+        Mining pool profiles.
+
+    Returns
+    -------
+    float
+        HHI value (0–10000). Higher = more concentrated.
+    """
+    entity_shares: dict[str, float] = {}
+    for pool in pools:
+        entity_shares[pool.entity_group] = (
+            entity_shares.get(pool.entity_group, 0.0) + pool.hashrate_share
+        )
+
+    return sum((s * 100) ** 2 for s in entity_shares.values())
+
+
+def geographic_concentration_risk(
+    regions: List[GeographicRegion],
+) -> float:
+    """Calculate a geographic concentration risk score.
+
+    Weighted by both hashrate share and regulatory risk.
+
+    Parameters
+    ----------
+    regions : list of GeographicRegion
+        Geographic hashrate distribution.
+
+    Returns
+    -------
+    float
+        Risk score in [0, 1]. Higher = more concentrated/risky.
+    """
+    # Geographic HHI (normalized to 0-1)
+    geo_hhi = sum(r.hashrate_share ** 2 for r in regions)
+
+    # Regulatory-weighted risk
+    reg_risk = sum(r.hashrate_share * r.regulatory_risk for r in regions)
+
+    # Combine: 50% concentration, 50% regulatory
+    return 0.5 * geo_hhi * 10 + 0.5 * reg_risk  # scale HHI contribution
+
+
+def censorship_resistance_score(
+    pools: List[MiningPool],
+    regions: List[GeographicRegion],
+) -> float:
+    """Compute an overall Censorship-Resistance Score (0–100).
+
+    Higher = more resistant to censorship. Combines:
+    - Nakamoto Coefficient (entity diversity)
+    - HHI (pool concentration)
+    - Geographic distribution risk
+    - KYC/government exposure
+
+    Parameters
+    ----------
+    pools : list of MiningPool
+        Mining pool profiles.
+    regions : list of GeographicRegion
+        Geographic hashrate distribution.
+
+    Returns
+    -------
+    float
+        Score in [0, 100].
+    """
+    nak = nakamoto_coefficient(pools)
+    hhi = herfindahl_index(pools)
+    geo_risk = geographic_concentration_risk(regions)
+
+    # KYC exposure: fraction of hashrate under KYC pools
+    kyc_share = sum(p.hashrate_share for p in pools if p.known_kyc)
+    gov_share = sum(p.hashrate_share for p in pools if p.government_linked)
+
+    # Component scores (0-25 each)
+    # Nakamoto: 2=worst (25→0), 10+=best (25)
+    nak_score = min(25, max(0, (nak - 2) * 25 / 8))
+
+    # HHI: 10000=monopoly(0), <1000=competitive(25)
+    hhi_score = max(0, 25 * (1 - hhi / 3000))
+
+    # Geographic: 0=low risk(25), 1=high risk(0)
+    geo_score = 25 * (1 - geo_risk)
+
+    # KYC/Gov: 0%=free(25), 100%=surveilled(0)
+    compliance_exposure = 0.7 * kyc_share + 0.3 * gov_share
+    compliance_score = 25 * (1 - compliance_exposure)
+
+    total = nak_score + hhi_score + geo_score + compliance_score
+    return float(np.clip(total, 0, 100))
+
+
+def estimate_censorship_cost(
+    pools: List[MiningPool],
+    target_share: float = 0.51,
+    btc_price: float = BTC_PRICE_USD,
+) -> dict:
+    """Estimate the cost of achieving targeted transaction censorship.
+
+    Models the annual cost an attacker would need to pay to convince
+    enough mining pools to censor specific transactions.
+
+    Parameters
+    ----------
+    pools : list of MiningPool
+        Mining pool profiles.
+    target_share : float
+        Hashrate share needed for reliable censorship (default 51%).
+    btc_price : float
+        Current BTC price for revenue calculations.
+
+    Returns
+    -------
+    dict
+        Cost estimates and methodology details.
+    """
+    daily_revenue_usd = BLOCK_REWARD_BTC * BLOCKS_PER_DAY * btc_price
+    annual_revenue_usd = daily_revenue_usd * 365
+
+    # Sort pools by "compliance likelihood" (KYC pools more likely to comply)
+    sorted_pools = sorted(
+        pools,
+        key=lambda p: (p.government_linked, p.known_kyc, -p.hashrate_share),
+        reverse=True,
+    )
+
+    # Calculate cost: pools need compensation for risk of losing revenue
+    cumulative_share = 0.0
+    total_cost = 0.0
+    recruited_pools = []
+
+    for pool in sorted_pools:
+        if cumulative_share >= target_share:
+            break
+
+        # Cost multiplier based on pool characteristics
+        if pool.government_linked:
+            multiplier = 0.1  # Government can compel at low cost
+        elif pool.known_kyc:
+            multiplier = 0.5  # KYC pools have compliance infrastructure
+        else:
+            multiplier = 2.0  # Non-KYC pools need strong incentive
+
+        pool_annual_revenue = pool.hashrate_share * annual_revenue_usd
+        recruitment_cost = pool_annual_revenue * multiplier
+
+        total_cost += recruitment_cost
+        cumulative_share += pool.hashrate_share
+        recruited_pools.append((pool.name, pool.hashrate_share, recruitment_cost))
+
+    return {
+        "target_share": target_share,
+        "achieved_share": cumulative_share,
+        "annual_cost_usd": total_cost,
+        "recruited_pools": recruited_pools,
+        "daily_network_revenue_usd": daily_revenue_usd,
+        "pools_needed": len(recruited_pools),
+    }
+
+
+def simulate_concentration_scenarios(
+    pools: List[MiningPool] = DEFAULT_POOLS,
+    regions: List[GeographicRegion] = DEFAULT_REGIONS,
+) -> pd.DataFrame:
+    """Simulate how concentration changes affect censorship resistance.
+
+    Models scenarios where the largest entity gains market share.
+
+    Parameters
+    ----------
+    pools : list of MiningPool
+        Baseline pool distribution.
+    regions : list of GeographicRegion
+        Geographic distribution.
+
+    Returns
+    -------
+    pd.DataFrame
+        Scenario results.
+    """
+    scenarios = []
+
+    # Baseline
+    scenarios.append({
+        "scenario": "Current (Baseline)",
+        "top_entity_share": max(
+            sum(p.hashrate_share for p in pools if p.entity_group == eg)
+            for eg in {p.entity_group for p in pools}
+        ),
+        "nakamoto_coeff": nakamoto_coefficient(pools),
+        "hhi": herfindahl_index(pools),
+        "cr_score": censorship_resistance_score(pools, regions),
+    })
+
+    # Scenario: top entity grows by 5%, 10%, 15%
+    for growth in [0.05, 0.10, 0.15, 0.20]:
+        modified_pools = []
+        # Find top entity
+        entity_shares: dict[str, float] = {}
+        for p in pools:
+            entity_shares[p.entity_group] = (
+                entity_shares.get(p.entity_group, 0.0) + p.hashrate_share
+            )
+        top_entity = max(entity_shares, key=entity_shares.get)  # type: ignore
+
+        for p in pools:
+            new_share = p.hashrate_share
+            if p.entity_group == top_entity:
+                new_share += growth * (p.hashrate_share / entity_shares[top_entity])
+            else:
+                # Others lose proportionally
+                other_total = 1.0 - entity_shares[top_entity]
+                if other_total > 0:
+                    new_share -= growth * (p.hashrate_share / other_total)
+                    new_share = max(0.001, new_share)
+            modified_pools.append(MiningPool(
+                p.name, new_share, p.jurisdiction, p.entity_group,
+                p.known_kyc, p.government_linked,
+            ))
+
+        top_share = entity_shares[top_entity] + growth
+        scenarios.append({
+            "scenario": f"Top entity +{growth:.0%}",
+            "top_entity_share": top_share,
+            "nakamoto_coeff": nakamoto_coefficient(modified_pools),
+            "hhi": herfindahl_index(modified_pools),
+            "cr_score": censorship_resistance_score(modified_pools, regions),
+        })
+
+    return pd.DataFrame(scenarios)
+
+
+def plot_concentration_analysis(
+    pools: List[MiningPool],
+    regions: List[GeographicRegion],
+    scenario_df: pd.DataFrame,
+    output_path: Optional[str] = None,
+) -> None:
+    """Create a multi-panel visualization of hashrate concentration.
+
+    Parameters
+    ----------
+    pools : list of MiningPool
+        Mining pool profiles.
+    regions : list of GeographicRegion
+        Geographic distribution.
+    scenario_df : pd.DataFrame
+        Scenario analysis results.
+    output_path : str, optional
+        File path to save the plot.
+    """
+    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+    fig.suptitle(
+        "Bitcoin Hashrate Concentration & Censorship Risk",
+        fontsize=16,
+        fontweight="bold",
+        y=0.98,
+    )
+
+    # --- Panel 1: Pool Distribution (Pie) ---
+    ax1 = axes[0, 0]
+    pool_names = [p.name for p in pools]
+    pool_shares = [p.hashrate_share for p in pools]
+    colors = plt.cm.Set3(np.linspace(0, 1, len(pools)))
+    wedges, texts, autotexts = ax1.pie(
+        pool_shares,
+        labels=pool_names,
+        autopct="%1.1f%%",
+        colors=colors,
+        pctdistance=0.85,
+        textprops={"fontsize": 8},
+    )
+    for t in autotexts:
+        t.set_fontsize(7)
+    ax1.set_title("Mining Pool Hashrate Distribution")
+
+    # --- Panel 2: Geographic Distribution ---
+    ax2 = axes[0, 1]
+    region_names = [r.region for r in regions]
+    region_shares = [r.hashrate_share * 100 for r in regions]
+    region_risks = [r.regulatory_risk for r in regions]
+    bar_colors = [plt.cm.RdYlGn_r(risk) for risk in region_risks]
+    bars = ax2.barh(region_names, region_shares, color=bar_colors, alpha=0.8)
+    ax2.set_xlabel("Hashrate Share (%)")
+    ax2.set_title("Geographic Distribution (color=regulatory risk)")
+    ax2.grid(True, alpha=0.3, axis="x")
+
+    # --- Panel 3: Scenario Analysis ---
+    ax3 = axes[1, 0]
+    x = range(len(scenario_df))
+    ax3.bar(x, scenario_df["cr_score"], color="#3498db", alpha=0.7)
+    ax3.set_xticks(list(x))
+    ax3.set_xticklabels(scenario_df["scenario"], rotation=30, ha="right", fontsize=8)
+    ax3.set_ylabel("Censorship Resistance Score")
+    ax3.set_title("Censorship Resistance Under Concentration Scenarios")
+    ax3.axhline(y=50, color="orange", linestyle="--", alpha=0.5, label="Warning")
+    ax3.axhline(y=25, color="red", linestyle="--", alpha=0.5, label="Critical")
+    ax3.legend(fontsize=9)
+    ax3.grid(True, alpha=0.3, axis="y")
+    ax3.set_ylim(0, 100)
+
+    # --- Panel 4: Entity Concentration ---
+    ax4 = axes[1, 1]
+    entity_shares: dict[str, float] = {}
+    for p in pools:
+        entity_shares[p.entity_group] = (
+            entity_shares.get(p.entity_group, 0.0) + p.hashrate_share
+        )
+    sorted_entities = sorted(entity_shares.items(), key=lambda x: x[1], reverse=True)
+    ent_names = [e[0] for e in sorted_entities]
+    ent_shares = [e[1] * 100 for e in sorted_entities]
+    cumulative = np.cumsum(ent_shares)
+
+    ax4.bar(range(len(ent_names)), ent_shares, color="#2ecc71", alpha=0.7, label="Share")
+    ax4_twin = ax4.twinx()
+    ax4_twin.plot(range(len(ent_names)), cumulative, "r-o", linewidth=2, label="Cumulative")
+    ax4_twin.axhline(y=51, color="red", linestyle="--", alpha=0.5)
+    ax4_twin.set_ylabel("Cumulative %", color="red")
+    ax4.set_xticks(range(len(ent_names)))
+    ax4.set_xticklabels(ent_names, rotation=45, ha="right", fontsize=8)
+    ax4.set_ylabel("Hashrate Share (%)")
+    ax4.set_title("Entity Concentration (Nakamoto Analysis)")
+    ax4.grid(True, alpha=0.3, axis="y")
+
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+
+    if output_path:
+        os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+        fig.savefig(output_path, dpi=150, bbox_inches="tight")
+        print(f"  📊 Plot saved to {output_path}")
+
+    plt.close(fig)
+
+
+# ---------------------------------------------------------------------------
+# Main Entry Point
+# ---------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    print("=" * 72)
+    print("  🏗️  Bitcoin Hashrate Concentration & Censorship Risk Analysis")
+    print("  Model: powsec-models v0.1.0")
+    print("=" * 72)
+
+    # --- Pool Summary ---
+    print("\n📋 Mining Pool Distribution:\n")
+    print(f"  {'Pool':<18} {'Share':>7} {'Jurisdiction':<8} {'Entity':<15} {'KYC':>4} {'Gov':>4}")
+    print(f"  {'─' * 18} {'─' * 7} {'─' * 8} {'─' * 15} {'─' * 4} {'─' * 4}")
+    for p in DEFAULT_POOLS:
+        print(f"  {p.name:<18} {p.hashrate_share:>6.1%} {p.jurisdiction:<8} "
+              f"{p.entity_group:<15} {'✓' if p.known_kyc else '✗':>4} "
+              f"{'✓' if p.government_linked else '✗':>4}")
+
+    # --- Key Metrics ---
+    nak = nakamoto_coefficient(DEFAULT_POOLS)
+    hhi = herfindahl_index(DEFAULT_POOLS)
+    cr = censorship_resistance_score(DEFAULT_POOLS, DEFAULT_REGIONS)
+    geo_risk = geographic_concentration_risk(DEFAULT_REGIONS)
+
+    print(f"\n📊 Key Metrics:")
+    print(f"  Nakamoto Coefficient:        {nak} entities")
+    print(f"  Herfindahl Index (HHI):      {hhi:.0f} (>2500 = highly concentrated)")
+    print(f"  Geographic Risk Score:        {geo_risk:.3f}")
+    print(f"  Censorship Resistance Score:  {cr:.1f}/100")
+
+    # --- Censorship Cost ---
+    print(f"\n💰 Censorship Cost Estimates:")
+    for target in [0.33, 0.51, 0.67]:
+        cost = estimate_censorship_cost(DEFAULT_POOLS, target_share=target)
+        print(f"\n  Target: {target:.0%} hashrate control")
+        print(f"  Pools needed: {cost['pools_needed']}")
+        print(f"  Achieved share: {cost['achieved_share']:.1%}")
+        print(f"  Estimated annual cost: ${cost['annual_cost_usd']:,.0f}")
+        print(f"  Recruited pools:")
+        for name, share, c in cost["recruited_pools"]:
+            print(f"    - {name:<18} ({share:.1%}) → ${c:,.0f}/yr")
+
+    # --- Scenario Analysis ---
+    print(f"\n📈 Concentration Scenarios:")
+    scenario_df = simulate_concentration_scenarios()
+    print(f"\n  {'Scenario':<22} {'Top Entity':>12} {'Nakamoto':>9} {'HHI':>7} {'CR Score':>9}")
+    print(f"  {'─' * 22} {'─' * 12} {'─' * 9} {'─' * 7} {'─' * 9}")
+    for _, row in scenario_df.iterrows():
+        print(f"  {row['scenario']:<22} {row['top_entity_share']:>11.1%} "
+              f"{row['nakamoto_coeff']:>9} {row['hhi']:>7.0f} {row['cr_score']:>8.1f}")
+
+    # --- Save Plot ---
+    script_dir = Path(__file__).parent
+    output_dir = script_dir / "output"
+    output_dir.mkdir(exist_ok=True)
+    output_path = output_dir / "hashrate_concentration.png"
+
+    print(f"\n💾 Saving visualization...")
+    plot_concentration_analysis(DEFAULT_POOLS, DEFAULT_REGIONS, scenario_df, str(output_path))
+
+    # --- Save CSV ---
+    csv_path = output_dir / "hashrate_concentration_data.csv"
+    scenario_df.to_csv(csv_path, index=False)
+    print(f"  📄 Data saved to {csv_path}")
+
+    print(f"\n{'=' * 72}")
+    print("  ✅ Hashrate concentration analysis complete.")
+    print(f"{'=' * 72}")
+```
+
+### MODULE 4: institutional_exit.py
+```python
+"""
+institutional_exit.py — ETF/Institutional Compliance Model
+===========================================================
+
+Models when and how institutional investors (ETFs, funds) might be
+forced to exit Bitcoin positions due to compliance triggers related
+to blockchain content pollution, regulatory changes, or ESG concerns.
+
+Projects the timeline to compliance-trigger events and estimates
+the resulting BTC price impact.
+"""
+
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass
+from pathlib import Path
+from typing import List, Optional
+
+import matplotlib
+matplotlib.use("Agg")
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from scipy.special import expit
+
+
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
+
+BTC_TOTAL_SUPPLY = 21_000_000
+BTC_CIRCULATING = 19_700_000      # Mid-2025 approximate
+BTC_DAILY_VOLUME_USD = 30e9       # Average daily spot volume
+BTC_MARKET_CAP_USD = 2.0e12      # At ~$100k
+
+
+# ---------------------------------------------------------------------------
+# Data Classes
+# ---------------------------------------------------------------------------
+
+@dataclass
+class InstitutionalHolder:
+    """Profile of an institutional BTC holder.
+
+    Attributes
+    ----------
+    name : str
+        Fund or entity name.
+    ticker : str
+        ETF ticker or identifier.
+    btc_holdings : float
+        BTC held (in BTC, not USD).
+    aum_usd : float
+        Total assets under management in USD (billions).
+    compliance_strictness : float
+        How strict the compliance framework is (0=lax, 1=very strict).
+    pollution_threshold : float
+        Maximum acceptable pollution rate before compliance trigger (0–1).
+    regulatory_jurisdiction : str
+        Primary regulatory jurisdiction.
+    exit_speed_days : int
+        Estimated days to fully liquidate position.
+    """
+    name: str
+    ticker: str
+    btc_holdings: float
+    aum_usd: float
+    compliance_strictness: float
+    pollution_threshold: float
+    regulatory_jurisdiction: str
+    exit_speed_days: int
+
+
+@dataclass
+class ComplianceTrigger:
+    """Result of compliance trigger analysis for a single holder.
+
+    Attributes
+    ----------
+    holder_name : str
+        Name of the institutional holder.
+    ticker : str
+        ETF ticker.
+    months_to_trigger : float
+        Estimated months until compliance trigger fires.
+    trigger_probability : float
+        Probability the trigger fires within 24 months (0–1).
+    btc_at_risk : float
+        BTC amount that would be sold.
+    usd_at_risk : float
+        USD value at risk (at current price).
+    price_impact_pct : float
+        Estimated BTC price impact from liquidation (%).
+    """
+    holder_name: str
+    ticker: str
+    months_to_trigger: float
+    trigger_probability: float
+    btc_at_risk: float
+    usd_at_risk: float
+    price_impact_pct: float
+
+
+# ---------------------------------------------------------------------------
+# Default Data (mid-2025 estimates)
+# ---------------------------------------------------------------------------
+
+DEFAULT_HOLDERS: List[InstitutionalHolder] = [
+    InstitutionalHolder(
+        "BlackRock iShares Bitcoin Trust", "IBIT",
+        570_000, 50.0, 0.7, 0.15, "US", 90,
+    ),
+    InstitutionalHolder(
+        "Fidelity Wise Origin", "FBTC",
+        205_000, 18.0, 0.8, 0.12, "US", 60,
+    ),
+    InstitutionalHolder(
+        "Grayscale Bitcoin Trust", "GBTC",
+        195_000, 17.0, 0.5, 0.20, "US", 45,
+    ),
+    InstitutionalHolder(
+        "ARK 21Shares Bitcoin ETF", "ARKB",
+        48_000, 4.5, 0.6, 0.18, "US", 30,
+    ),
+    InstitutionalHolder(
+        "Bitwise Bitcoin ETF", "BITB",
+        42_000, 3.8, 0.6, 0.18, "US", 30,
+    ),
+    InstitutionalHolder(
+        "VanEck Bitcoin ETF", "HODL",
+        12_000, 1.1, 0.7, 0.15, "US", 20,
+    ),
+    InstitutionalHolder(
+        "Invesco Galaxy Bitcoin ETF", "BTCO",
+        8_500, 0.8, 0.7, 0.15, "US", 15,
+    ),
+    InstitutionalHolder(
+        "Purpose Bitcoin ETF", "BTCC",
+        35_000, 2.0, 0.8, 0.10, "CA", 30,
+    ),
+    InstitutionalHolder(
+        "ETC Group Physical Bitcoin", "BTCE",
+        20_000, 1.5, 0.9, 0.08, "DE", 45,
+    ),
+    InstitutionalHolder(
+        "21Shares Bitcoin ETP", "ABTC",
+        15_000, 1.0, 0.85, 0.10, "CH", 30,
+    ),
+]
+
+
+# ---------------------------------------------------------------------------
+# Core Functions
+# ---------------------------------------------------------------------------
+
+def estimate_pollution_trajectory(
+    current_rate: float = 0.03,
+    growth_rate: float = 0.15,
+    months: int = 48,
+    capacity: float = 0.60,
+) -> np.ndarray:
+    """Project blockchain pollution rate over time using logistic growth.
+
+    Parameters
+    ----------
+    current_rate : float
+        Current estimated pollution rate (fraction of blocks, 0–1).
+    growth_rate : float
+        Monthly growth rate parameter.
+    months : int
+        Number of months to project.
+    capacity : float
+        Maximum pollution capacity (asymptote).
+
+    Returns
+    -------
+    np.ndarray
+        Array of pollution rates for each month.
+    """
+    t = np.arange(months, dtype=float)
+
+    # Find the offset that matches current_rate at t=0
+    # logistic: capacity * sigmoid(growth_rate * (t - midpoint))
+    # At t=0: current_rate = capacity * sigmoid(-growth_rate * midpoint)
+    # Solve for midpoint
+    from scipy.special import logit
+    if 0 < current_rate / capacity < 1:
+        midpoint = -logit(current_rate / capacity) / growth_rate
+    else:
+        midpoint = 12.0
+
+    return capacity * expit(growth_rate * (t - midpoint))
+
+
+def time_to_trigger(
+    holder: InstitutionalHolder,
+    pollution_trajectory: np.ndarray,
+) -> float:
+    """Estimate months until a holder's compliance trigger fires.
+
+    Parameters
+    ----------
+    holder : InstitutionalHolder
+        Institutional holder profile.
+    pollution_trajectory : np.ndarray
+        Monthly pollution rate projections.
+
+    Returns
+    -------
+    float
+        Months until trigger. Returns float('inf') if never triggered.
+    """
+    for month, rate in enumerate(pollution_trajectory):
+        # Effective threshold adjusted by compliance strictness
+        # Stricter compliance → trigger fires at lower rates
+        effective_threshold = holder.pollution_threshold * (
+            1.0 - 0.3 * holder.compliance_strictness
+        )
+        if rate >= effective_threshold:
+            return float(month)
+
+    return float("inf")
+
+
+def trigger_probability_24m(
+    holder: InstitutionalHolder,
+    pollution_trajectory: np.ndarray,
+) -> float:
+    """Estimate probability of compliance trigger within 24 months.
+
+    Combines pollution trajectory with regulatory uncertainty.
+
+    Parameters
+    ----------
+    holder : InstitutionalHolder
+        Institutional holder profile.
+    pollution_trajectory : np.ndarray
+        Monthly pollution rate projections.
+
+    Returns
+    -------
+    float
+        Probability in [0, 1].
+    """
+    months = time_to_trigger(holder, pollution_trajectory)
+
+    if months <= 24:
+        # Base probability from trajectory
+        base_prob = expit(3.0 * (1.0 - months / 24.0))
+    else:
+        base_prob = 0.05  # Small residual risk
+
+    # Regulatory jurisdiction modifier
+    jurisdiction_risk = {
+        "US": 0.6,
+        "CA": 0.5,
+        "DE": 0.8,  # EU is stricter
+        "CH": 0.7,
+    }
+    reg_mod = jurisdiction_risk.get(holder.regulatory_jurisdiction, 0.5)
+
+    # Compliance strictness amplifies probability
+    adjusted = base_prob * (0.5 + 0.5 * holder.compliance_strictness) * (0.5 + 0.5 * reg_mod)
+
+    return float(np.clip(adjusted, 0.0, 0.99))
+
+
+def estimate_price_impact(
+    btc_to_sell: float,
+    exit_days: int,
+    btc_price: float = 100_000,
+) -> float:
+    """Estimate the BTC price impact from institutional liquidation.
+
+    Uses a square-root market impact model commonly applied to
+    large institutional trades.
+
+    Parameters
+    ----------
+    btc_to_sell : float
+        Amount of BTC to liquidate.
+    exit_days : int
+        Number of days over which the liquidation occurs.
+    btc_price : float
+        Current BTC price.
+
+    Returns
+    -------
+    float
+        Estimated percentage price decline.
+    """
+    daily_btc_volume = BTC_DAILY_VOLUME_USD / btc_price
+    daily_sell_amount = btc_to_sell / max(exit_days, 1)
+
+    # Participation rate: fraction of daily volume
+    participation = daily_sell_amount / daily_btc_volume
+
+    # Square-root impact model: impact ≈ k * sqrt(participation) * sqrt(days)
+    # k calibrated to ~10% impact for selling 5% of daily volume over 30 days
+    k = 0.15
+    impact_pct = k * np.sqrt(participation) * np.sqrt(exit_days) * 100
+
+    # Cap at reasonable maximum
+    return float(min(impact_pct, 60.0))
+
+
+def analyze_institutional_risk(
+    holders: List[InstitutionalHolder] = DEFAULT_HOLDERS,
+    pollution_current: float = 0.03,
+    pollution_growth: float = 0.15,
+    btc_price: float = 100_000,
+) -> pd.DataFrame:
+    """Run full institutional exit risk analysis.
+
+    Parameters
+    ----------
+    holders : list of InstitutionalHolder
+        Institutional holder profiles.
+    pollution_current : float
+        Current pollution rate.
+    pollution_growth : float
+        Monthly pollution growth rate.
+    btc_price : float
+        Current BTC price.
+
+    Returns
+    -------
+    pd.DataFrame
+        Analysis results per holder.
+    """
+    trajectory = estimate_pollution_trajectory(
+        current_rate=pollution_current,
+        growth_rate=pollution_growth,
+    )
+
+    results = []
+    for holder in holders:
+        months = time_to_trigger(holder, trajectory)
+        prob = trigger_probability_24m(holder, trajectory)
+        impact = estimate_price_impact(
+            holder.btc_holdings, holder.exit_speed_days, btc_price
+        )
+        usd_val = holder.btc_holdings * btc_price
+
+        results.append({
+            "holder": holder.name,
+            "ticker": holder.ticker,
+            "btc_holdings": holder.btc_holdings,
+            "usd_at_risk": usd_val,
+            "compliance_strictness": holder.compliance_strictness,
+            "pollution_threshold": holder.pollution_threshold,
+            "months_to_trigger": months if months != float("inf") else 999,
+            "trigger_prob_24m": prob,
+            "price_impact_pct": impact,
+            "jurisdiction": holder.regulatory_jurisdiction,
+        })
+
+    return pd.DataFrame(results)
+
+
+def simulate_cascade(
+    holders: List[InstitutionalHolder] = DEFAULT_HOLDERS,
+    pollution_current: float = 0.03,
+    pollution_growth: float = 0.15,
+    btc_price: float = 100_000,
+    months: int = 36,
+) -> pd.DataFrame:
+    """Simulate a cascade of institutional exits over time.
+
+    Parameters
+    ----------
+    holders : list of InstitutionalHolder
+        Institutional holder profiles.
+    pollution_current : float
+        Starting pollution rate.
+    pollution_growth : float
+        Monthly pollution growth rate.
+    btc_price : float
+        Starting BTC price.
+    months : int
+        Simulation duration in months.
+
+    Returns
+    -------
+    pd.DataFrame
+        Monthly cascade simulation with price trajectory.
+    """
+    trajectory = estimate_pollution_trajectory(
+        current_rate=pollution_current,
+        growth_rate=pollution_growth,
+        months=months,
+    )
+
+    price = btc_price
+    exited = set()
+    records = []
+
+    total_institutional_btc = sum(h.btc_holdings for h in holders)
+
+    for month in range(months):
+        month_exits = []
+        month_btc_sold = 0.0
+
+        for holder in holders:
+            if holder.ticker in exited:
+                continue
+
+            effective_threshold = holder.pollution_threshold * (
+                1.0 - 0.3 * holder.compliance_strictness
+            )
+            if trajectory[month] >= effective_threshold:
+                exited.add(holder.ticker)
+                month_exits.append(holder.ticker)
+                month_btc_sold += holder.btc_holdings
+
+        # Price impact from this month's exits
+        if month_btc_sold > 0:
+            impact = estimate_price_impact(month_btc_sold, 30, price)
+            price *= (1.0 - impact / 100.0)
+
+        remaining_btc = sum(
+            h.btc_holdings for h in holders if h.ticker not in exited
+        )
+
+        records.append({
+            "month": month,
+            "pollution_rate": trajectory[month],
+            "btc_price": price,
+            "exits_this_month": ", ".join(month_exits) if month_exits else "",
+            "btc_sold_this_month": month_btc_sold,
+            "remaining_institutional_btc": remaining_btc,
+            "institutional_pct_remaining": remaining_btc / total_institutional_btc * 100,
+        })
+
+    return pd.DataFrame(records)
+
+
+def plot_institutional_analysis(
+    risk_df: pd.DataFrame,
+    cascade_df: pd.DataFrame,
+    output_path: Optional[str] = None,
+) -> None:
+    """Create a multi-panel visualization of institutional exit risk.
+
+    Parameters
+    ----------
+    risk_df : pd.DataFrame
+        Per-holder risk analysis.
+    cascade_df : pd.DataFrame
+        Cascade simulation results.
+    output_path : str, optional
+        File path to save the plot.
+    """
+    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+    fig.suptitle(
+        "Institutional BTC Exit Risk — Compliance Trigger Analysis",
+        fontsize=16,
+        fontweight="bold",
+        y=0.98,
+    )
+
+    # --- Panel 1: BTC at Risk by Holder ---
+    ax1 = axes[0, 0]
+    sorted_risk = risk_df.sort_values("btc_holdings", ascending=True)
+    colors = [plt.cm.RdYlGn_r(p) for p in sorted_risk["trigger_prob_24m"]]
+    ax1.barh(
+        sorted_risk["ticker"],
+        sorted_risk["btc_holdings"] / 1000,
+        color=colors,
+        alpha=0.8,
+    )
+    ax1.set_xlabel("BTC Holdings (thousands)")
+    ax1.set_title("BTC at Risk by Holder (color=trigger probability)")
+    ax1.grid(True, alpha=0.3, axis="x")
+
+    # --- Panel 2: Trigger Timeline ---
+    ax2 = axes[0, 1]
+    finite = risk_df[risk_df["months_to_trigger"] < 999].copy()
+    if not finite.empty:
+        finite_sorted = finite.sort_values("months_to_trigger")
+        ax2.barh(
+            finite_sorted["ticker"],
+            finite_sorted["months_to_trigger"],
+            color="#e74c3c",
+            alpha=0.7,
+        )
+        ax2.set_xlabel("Months to Compliance Trigger")
+        ax2.set_title("Time to Trigger (by Holder)")
+        ax2.grid(True, alpha=0.3, axis="x")
+    else:
+        ax2.text(0.5, 0.5, "No triggers within projection",
+                 ha="center", va="center", transform=ax2.transAxes)
+        ax2.set_title("Time to Trigger (by Holder)")
+
+    # --- Panel 3: Cascade — Price + Pollution ---
+    ax3 = axes[1, 0]
+    ax3.plot(
+        cascade_df["month"],
+        cascade_df["btc_price"] / 1000,
+        color="#3498db",
+        linewidth=2,
+        label="BTC Price ($k)",
+    )
+    ax3.set_xlabel("Month")
+    ax3.set_ylabel("BTC Price ($k)", color="#3498db")
+    ax3.tick_params(axis="y", labelcolor="#3498db")
+
+    ax3_twin = ax3.twinx()
+    ax3_twin.plot(
+        cascade_df["month"],
+        cascade_df["pollution_rate"] * 100,
+        color="#e74c3c",
+        linewidth=2,
+        linestyle="--",
+        label="Pollution Rate (%)",
+    )
+    ax3_twin.set_ylabel("Pollution Rate (%)", color="#e74c3c")
+    ax3_twin.tick_params(axis="y", labelcolor="#e74c3c")
+    ax3.set_title("BTC Price vs Pollution Rate (Cascade)")
+    ax3.grid(True, alpha=0.3)
+
+    # --- Panel 4: Institutional Holdings Remaining ---
+    ax4 = axes[1, 1]
+    ax4.fill_between(
+        cascade_df["month"],
+        cascade_df["institutional_pct_remaining"],
+        alpha=0.3,
+        color="#2ecc71",
+    )
+    ax4.plot(
+        cascade_df["month"],
+        cascade_df["institutional_pct_remaining"],
+        color="#2ecc71",
+        linewidth=2,
+    )
+    ax4.set_xlabel("Month")
+    ax4.set_ylabel("Institutional Holdings Remaining (%)")
+    ax4.set_title("Institutional Exit Cascade")
+    ax4.set_ylim(0, 105)
+    ax4.grid(True, alpha=0.3)
+
+    # Mark exit events
+    exits = cascade_df[cascade_df["exits_this_month"] != ""]
+    for _, row in exits.iterrows():
+        ax4.axvline(x=row["month"], color="red", linestyle=":", alpha=0.4)
+        ax4.annotate(
+            row["exits_this_month"],
+            xy=(row["month"], row["institutional_pct_remaining"]),
+            fontsize=6,
+            rotation=90,
+            va="bottom",
+        )
+
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+
+    if output_path:
+        os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+        fig.savefig(output_path, dpi=150, bbox_inches="tight")
+        print(f"  📊 Plot saved to {output_path}")
+
+    plt.close(fig)
+
+
+# ---------------------------------------------------------------------------
+# Main Entry Point
+# ---------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    print("=" * 72)
+    print("  🏦 Institutional BTC Exit Risk — Compliance Trigger Analysis")
+    print("  Model: powsec-models v0.1.0")
+    print("=" * 72)
+
+    # --- Holder Summary ---
+    print("\n📋 Institutional BTC Holdings:\n")
+    total_btc = sum(h.btc_holdings for h in DEFAULT_HOLDERS)
+    total_usd = total_btc * 100_000
+
+    print(f"  {'Ticker':<8} {'Name':<35} {'BTC':>10} {'USD ($B)':>10} "
+          f"{'Strict':>7} {'Thresh':>7} {'Jur':>4}")
+    print(f"  {'─' * 8} {'─' * 35} {'─' * 10} {'─' * 10} "
+          f"{'─' * 7} {'─' * 7} {'─' * 4}")
+
+    for h in DEFAULT_HOLDERS:
+        usd_b = h.btc_holdings * 100_000 / 1e9
+        print(f"  {h.ticker:<8} {h.name:<35} {h.btc_holdings:>10,.0f} "
+              f"${usd_b:>8.1f}B {h.compliance_strictness:>6.1f} "
+              f"{h.pollution_threshold:>6.0%} {h.regulatory_jurisdiction:>4}")
+
+    print(f"\n  Total: {total_btc:,.0f} BTC (${total_usd / 1e9:.1f}B) "
+          f"= {total_btc / BTC_CIRCULATING:.1%} of circulating supply")
+
+    # --- Risk Analysis ---
+    print("\n🔍 Running compliance trigger analysis...")
+    risk_df = analyze_institutional_risk()
+
+    print(f"\n  {'Ticker':<8} {'Months→Trigger':>15} {'Prob 24m':>10} "
+          f"{'Price Impact':>13} {'BTC at Risk':>12}")
+    print(f"  {'─' * 8} {'─' * 15} {'─' * 10} {'─' * 13} {'─' * 12}")
+
+    for _, row in risk_df.iterrows():
+        months_str = (f"{row['months_to_trigger']:.0f}"
+                      if row["months_to_trigger"] < 999 else "∞")
+        print(f"  {row['ticker']:<8} {months_str:>15} "
+              f"{row['trigger_prob_24m']:>9.1%} "
+              f"{row['price_impact_pct']:>12.1f}% "
+              f"{row['btc_holdings']:>11,.0f}")
+
+    # --- Cascade Simulation ---
+    print("\n🌊 Running cascade simulation (36 months)...")
+    cascade_df = simulate_cascade()
+
+    exits = cascade_df[cascade_df["exits_this_month"] != ""]
+    if not exits.empty:
+        print("\n  Exit Events:")
+        for _, row in exits.iterrows():
+            print(f"  Month {row['month']:>2}: {row['exits_this_month']:<30} "
+                  f"({row['btc_sold_this_month']:,.0f} BTC sold, "
+                  f"price → ${row['btc_price']:,.0f})")
+
+    final = cascade_df.iloc[-1]
+    print(f"\n  Final state (month 36):")
+    print(f"    BTC Price:     ${final['btc_price']:,.0f} "
+          f"({(final['btc_price'] / 100_000 - 1) * 100:+.1f}%)")
+    print(f"    Pollution:     {final['pollution_rate']:.1%}")
+    print(f"    Holdings left: {final['institutional_pct_remaining']:.1f}%")
+
+    # --- Save Plot ---
+    script_dir = Path(__file__).parent
+    output_dir = script_dir / "output"
+    output_dir.mkdir(exist_ok=True)
+    output_path = output_dir / "institutional_exit.png"
+
+    print(f"\n💾 Saving visualization...")
+    plot_institutional_analysis(risk_df, cascade_df, str(output_path))
+
+    # --- Save CSV ---
+    csv_path = output_dir / "institutional_exit_risk.csv"
+    risk_df.to_csv(csv_path, index=False)
+    print(f"  📄 Risk data saved to {csv_path}")
+
+    cascade_csv = output_dir / "institutional_exit_cascade.csv"
+    cascade_df.to_csv(cascade_csv, index=False)
+    print(f"  📄 Cascade data saved to {cascade_csv}")
+
+    print(f"\n{'=' * 72}")
+    print("  ✅ Institutional exit analysis complete.")
+    print(f"{'=' * 72}")
+```
+
+Please provide a structured review addressing sections A through F. Be rigorous — treat this as a peer review. Point out every weakness, but also acknowledge strengths.
