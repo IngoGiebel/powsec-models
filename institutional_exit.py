@@ -596,7 +596,7 @@ def plot_institutional_analysis(
 if __name__ == "__main__":
     print("=" * 72)
     print("  🏦 Institutional BTC Exit Risk — Compliance Trigger Analysis")
-    print("  Model: powsec-models v0.1.0")
+    print("  Model: powsec-models v0.2.0")
     print("=" * 72)
 
     # --- Holder Summary ---

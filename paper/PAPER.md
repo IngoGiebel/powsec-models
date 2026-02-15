@@ -10,7 +10,7 @@
 
 ## Abstract
 
-We present a quantitative framework for assessing systemic risks in Bitcoin's Proof-of-Work (PoW) security model through four interconnected simulation models. Our analysis examines (1) miner capitulation dynamics under price stress with difficulty adjustment feedback, (2) blockchain content pollution via Ordinals and OP_RETURN abuse with fee-market dampening, (3) hashrate concentration and censorship resistance, and (4) institutional exit cascades triggered by compliance concerns using Almgren-Chriss optimal execution modeling. Results indicate critical vulnerabilities: a Nakamoto Coefficient of only 3, content pollution approaching 55% saturation (down from earlier estimates after incorporating fee-market dynamics), and a potential institutional exit cascade scenario. These findings suggest that Bitcoin's security guarantees may be more fragile than commonly assumed, though endogenous stabilization mechanisms (difficulty adjustment, fee markets) provide meaningful resilience.
+We present a quantitative framework for assessing systemic risks in Bitcoin's Proof-of-Work (PoW) security model through four interconnected simulation models. Our analysis examines (1) miner capitulation dynamics under price stress with difficulty adjustment feedback, (2) blockchain content pollution via Ordinals and OP_RETURN abuse with fee-market dampening, (3) hashrate concentration and censorship resistance, and (4) institutional exit cascades triggered by compliance concerns using Almgren-Chriss optimal execution modeling. Results indicate critical vulnerabilities: a Nakamoto Coefficient of only 3, content pollution approaching 54% saturation (down from earlier estimates after incorporating fee-market dynamics), and a potential institutional exit cascade scenario. These findings suggest that Bitcoin's security guarantees may be more fragile than commonly assumed, though endogenous stabilization mechanisms (difficulty adjustment, fee markets) provide meaningful resilience.
 
 **Keywords:** Bitcoin, Proof-of-Work, mining economics, hashrate concentration, censorship resistance, institutional risk, content pollution, Ordinals, ETF compliance, Almgren-Chriss, difficulty adjustment
 
@@ -176,12 +176,12 @@ Each exit event reduces BTC price through the Almgren-Chriss impact model. The r
 
 | Miner | Breakeven Price | EBITDA Margin | Debt/Cash |
 |-------|----------------|---------------|-----------|
+| CleanSpark (CLSK) | $49,470 | 18.8% | 1.3x |
+| Core Scientific (CORZ) | $52,988 | 19.0% | 4.0x |
 | TeraWulf (WULF) | $53,646 | -21.0% | 1.5x |
-| CleanSpark (CLSK) | ~$55,000 | 18.8% | 1.3x |
-| Riot Platforms (RIOT) | ~$58,000 | -5.4% | 0.6x |
-| Core Scientific (CORZ) | ~$60,000 | 19.0% | 4.0x |
-| Marathon Digital (MARA) | ~$65,000 | 12.4% | 4.0x |
-| Cipher Mining (CIFR) | ~$72,000 | -13.3% | 4.0x |
+| Riot Platforms (RIOT) | $53,836 | -5.4% | 0.6x |
+| Marathon Digital (MARA) | $66,636 | 12.4% | 4.0x |
+| Cipher Mining (CIFR) | $68,816 | -13.3% | 4.0x |
 
 *Note: Breakeven prices are lower than pre-revision estimates due to corrected overhead calculation that avoids double-counting energy costs in both the breakeven formula and the EBITDA-based overhead factor.*
 
@@ -189,8 +189,8 @@ Each exit event reduces BTC price through the Almgren-Chriss impact model. The r
 
 ### 4.2 Content Pollution
 
-- Saturation asymptote: **~55%** (revised down from 85% after incorporating fee-market dynamics)
-- Growth rate: 0.434 (rapid initial growth, but dampened by rising fees)
+- Saturation asymptote: **~54%** (revised down from 85% after incorporating fee-market dynamics and inscription gating)
+- Growth rate: 0.666 (rapid initial growth, but dampened by rising fees)
 - Fee-market pushback reduces effective pollution by up to 50% during high-fee periods
 
 **Key Finding:** The fee auction mechanism provides meaningful self-regulation of block space pollution. As inscriptions fill blocks and push fees up, low-value inscriptions are priced out, creating an endogenous ceiling well below 100%.
@@ -202,7 +202,7 @@ Each exit event reduces BTC price through the Almgren-Chriss impact model. The r
 | Nakamoto Coefficient | 3 | Critical |
 | HHI | 1,612 | Moderate concentration |
 | Geographic Risk Score | 0.314 | Moderate |
-| Censorship Resistance Score | ~35/100 | Low |
+| Censorship Resistance Score | ~49/100 | Moderate-Low |
 | 51% attack cost | ~$5.9B/yr | Achievable for nation-states |
 
 **Key Finding:** Only 3 entities (DCG/Foundry 30%, Bitmain/AntPool 18%, F2Pool 12%) control >50% of hashrate. However, this overstates censorship risk: Stratum V2 adoption and pool-hopping dynamics provide additional resilience not captured by static pool-share analysis (Vernetti, 2023; Cong, He & Li, 2021).

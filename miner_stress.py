@@ -533,7 +533,7 @@ def plot_stress_test(
 if __name__ == "__main__":
     print("=" * 72)
     print("  ⛏️  Bitcoin Miner Capitulation Stress Test")
-    print("  Model: powsec-models v0.1.0")
+    print("  Model: powsec-models v0.2.0")
     print("=" * 72)
 
     # --- Breakeven Summary ---

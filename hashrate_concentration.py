@@ -507,7 +507,7 @@ def plot_concentration_analysis(
 if __name__ == "__main__":
     print("=" * 72)
     print("  🏗️  Bitcoin Hashrate Concentration & Censorship Risk Analysis")
-    print("  Model: powsec-models v0.1.0")
+    print("  Model: powsec-models v0.2.0")
     print("=" * 72)
 
     # --- Pool Summary ---

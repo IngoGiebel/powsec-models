@@ -219,9 +219,14 @@ def calculate_pollution_probability(snapshot: BlockSnapshot) -> float:
         + 0.10 * op_return_score
     ) * (0.5 + 0.5 * fee_pushback)  # fee market dampens pollution at high fees
 
+    # Gate on inscription/flagged content existence: without inscriptions,
+    # pollution probability should be near zero regardless of utilization/OP_RETURN.
+    # Ramps linearly from 0 to 1 as inscriptions increase (saturates at 1000/period).
+    inscription_gate = min(1.0, (snapshot.inscription_count + snapshot.flagged_content_count) / 1000.0)
+
     # Apply sigmoid for smooth probability
     # Threshold 0.3 chosen as midpoint where pollution becomes "likely"
-    return float(expit(6.0 * (raw_score - 0.3)))
+    return float(inscription_gate * expit(6.0 * (raw_score - 0.3)))
 
 
 def estimate_cumulative_tainted(
@@ -505,7 +510,7 @@ def plot_pollution_analysis(
 if __name__ == "__main__":
     print("=" * 72)
     print("  🧪 Bitcoin Blockchain Content Pollution Analysis")
-    print("  Model: powsec-models v0.1.0")
+    print("  Model: powsec-models v0.2.0")
     print("=" * 72)
 
     # --- Run Analysis ---

@@ -57,7 +57,7 @@ Tracks Ordinals/inscription growth and estimates the probability that random blo
 Analyzes mining pool and entity concentration. Computes Nakamoto Coefficient, HHI, geographic risk, and estimates the dollar cost of achieving transaction censorship at various hashrate thresholds.
 
 ### 4. Institutional Exit (`institutional_exit.py`)
-Models when ETFs and institutional holders hit compliance triggers due to rising pollution rates. Simulates a cascade of forced exits and the resulting BTC price impact (square-root market impact model).
+Models when ETFs and institutional holders hit compliance triggers due to rising pollution rates. Simulates a cascade of forced exits and the resulting BTC price impact (Almgren-Chriss optimal execution model with separate temporary and permanent impact).
 
 ## Output Files
 
