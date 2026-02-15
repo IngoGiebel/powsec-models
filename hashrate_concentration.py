@@ -191,14 +191,21 @@ def geographic_concentration_risk(
     float
         Risk score in [0, 1]. Higher = more concentrated/risky.
     """
-    # Geographic HHI (normalized to 0-1)
-    geo_hhi = sum(r.hashrate_share ** 2 for r in regions)
+    # Geographic HHI: sum of squared shares, range [1/N, 1]
+    # Normalize to [0, 1]: (HHI - 1/N) / (1 - 1/N)
+    geo_hhi_raw = sum(r.hashrate_share ** 2 for r in regions)
+    n = len(regions)
+    if n > 1:
+        geo_hhi = (geo_hhi_raw - 1.0 / n) / (1.0 - 1.0 / n)
+    else:
+        geo_hhi = 1.0
+    geo_hhi = float(np.clip(geo_hhi, 0.0, 1.0))
 
-    # Regulatory-weighted risk
+    # Regulatory-weighted risk: already in [0, 1] since both factors are [0,1]
     reg_risk = sum(r.hashrate_share * r.regulatory_risk for r in regions)
 
-    # Combine: 50% concentration, 50% regulatory
-    return 0.5 * geo_hhi * 10 + 0.5 * reg_risk  # scale HHI contribution
+    # Combine: 50% concentration, 50% regulatory — both in [0, 1]
+    return 0.5 * geo_hhi + 0.5 * reg_risk
 
 
 def censorship_resistance_score(

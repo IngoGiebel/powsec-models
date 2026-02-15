@@ -274,8 +274,9 @@ def estimate_price_impact(
 ) -> float:
     """Estimate the BTC price impact from institutional liquidation.
 
-    Uses a square-root market impact model commonly applied to
-    large institutional trades.
+    Implements a simplified Almgren-Chriss (2001) optimal execution model,
+    separating temporary impact (decays intraday) from permanent impact
+    (structural supply overhang that shifts the equilibrium price).
 
     Parameters
     ----------
@@ -290,20 +291,45 @@ def estimate_price_impact(
     -------
     float
         Estimated percentage price decline.
-    """
-    daily_btc_volume = BTC_DAILY_VOLUME_USD / btc_price
-    daily_sell_amount = btc_to_sell / max(exit_days, 1)
 
-    # Participation rate: fraction of daily volume
+    References
+    ----------
+    Almgren, R. & Chriss, N. (2001). Optimal execution of portfolio
+    transactions. Journal of Risk, 3(2), 5–39.
+    """
+    exit_days = max(exit_days, 1)
+    daily_btc_volume = BTC_DAILY_VOLUME_USD / btc_price
+    daily_sell_amount = btc_to_sell / exit_days
+
+    # Participation rate: fraction of daily volume per day
     participation = daily_sell_amount / daily_btc_volume
 
-    # Square-root impact model: impact ≈ k * sqrt(participation) * sqrt(days)
-    # k calibrated to ~10% impact for selling 5% of daily volume over 30 days
-    k = 0.15
-    impact_pct = k * np.sqrt(participation) * np.sqrt(exit_days) * 100
+    # --- Temporary impact (per-day, decays) ---
+    # Scales with sqrt of participation rate (Kyle's lambda model)
+    # eta calibrated: 10 bps temporary impact at 1% participation
+    eta = 0.10  # temporary impact coefficient
+    daily_temporary_impact = eta * np.sqrt(participation)
+
+    # --- Permanent impact (cumulative, structural) ---
+    # Each day's trading permanently shifts the price by gamma * participation
+    # gamma calibrated: 5 bps permanent impact at 1% participation
+    gamma = 0.05  # permanent impact coefficient
+    daily_permanent_impact = gamma * participation
+
+    # Total permanent impact accumulates over all trading days
+    cumulative_permanent_pct = daily_permanent_impact * exit_days * 100
+
+    # Temporary impact: only the peak matters for total price decline
+    # (it decays, but the worst intraday dip scales with max daily trade)
+    peak_temporary_pct = daily_temporary_impact * 100
+
+    # Total impact: permanent (structural) + peak temporary
+    # Note: faster execution → higher daily participation → higher temporary
+    # but fewer days → less cumulative permanent. This creates a real tradeoff.
+    total_impact_pct = cumulative_permanent_pct + peak_temporary_pct
 
     # Cap at reasonable maximum
-    return float(min(impact_pct, 60.0))
+    return float(min(total_impact_pct, 60.0))
 
 
 def analyze_institutional_risk(

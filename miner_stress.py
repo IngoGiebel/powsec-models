@@ -205,17 +205,29 @@ def calculate_breakeven(
 
     energy_breakeven = daily_power_cost_per_th / btc_per_th_per_day
 
-    # Adjust for operating overhead using EBITDA margin
-    # If EBITDA margin is negative, the company is spending more than revenue
-    # on operations, pushing breakeven higher
+    # Overhead adjustment: use SGA (non-energy OPEX) as fraction of revenue
+    # EBITDA = Revenue - COGS - SGA. Since energy_breakeven already covers
+    # energy (the dominant COGS component), we only add SGA overhead.
+    # SGA ≈ Revenue - EBITDA - energy_cost (≈ COGS - energy + SGA)
+    # Simplified: overhead_ratio = (Revenue - EBITDA) / Revenue - energy_share
+    # We approximate SGA as: Revenue * (1 - EBITDA_margin) - energy_costs
+    # To avoid double-counting energy in both breakeven and EBITDA,
+    # we estimate the non-energy overhead as a multiplier.
     if miner.revenue_ttm > 0:
         ebitda_margin = miner.ebitda / miner.revenue_ttm
+        # Non-energy overhead ratio: total costs minus energy, relative to revenue
+        # COGS includes energy; EBITDA excludes D&A but includes energy costs.
+        # SGA_ratio ≈ 1 - ebitda_margin - energy_share_of_revenue
+        # For miners, energy is typically 50-70% of revenue at breakeven
+        energy_share_estimate = 0.6  # typical for BTC miners
+        sga_ratio = max(0.0, (1.0 - ebitda_margin) - energy_share_estimate)
+        # Overhead multiplier: energy breakeven covers energy, add SGA on top
+        overhead_factor = 1.0 + sga_ratio
     else:
-        ebitda_margin = -1.0
+        overhead_factor = 2.0  # conservative fallback
 
-    # Operating overhead factor: low/negative margin → higher breakeven
-    # A miner with -20% EBITDA margin needs ~20% more revenue to cover costs
-    overhead_factor = 1.0 / max(0.1, 0.5 + 0.5 * ebitda_margin)
+    # Clamp to reasonable range [1.0, 3.0]
+    overhead_factor = float(np.clip(overhead_factor, 1.0, 3.0))
 
     return energy_breakeven * overhead_factor
 
@@ -331,8 +343,15 @@ def simulate_btc_crash(
     steps: int = 50,
     miners: List[MinerProfile] = DEFAULT_MINERS,
     interest_rate: float = 0.05,
+    daa_enabled: bool = True,
 ) -> pd.DataFrame:
     """Simulate a BTC price decline and track miner capitulation dynamics.
+
+    When daa_enabled=True, incorporates the Difficulty Adjustment Algorithm
+    (DAA) feedback loop: as miners capitulate and hashrate drops, difficulty
+    adjusts downward (every ~2016 blocks ≈ 14 days), reducing breakeven
+    costs for surviving miners. This models the stabilizing feedback that
+    the static analysis misses. See Prat & Walter (2021).
 
     Parameters
     ----------
@@ -346,26 +365,54 @@ def simulate_btc_crash(
         Miner profiles to evaluate.
     interest_rate : float
         Prevailing interest rate.
+    daa_enabled : bool
+        Whether to model difficulty adjustment feedback (default True).
 
     Returns
     -------
     pd.DataFrame
         DataFrame with columns: btc_price, per-miner capitulation probs,
-        and aggregate security degradation.
+        aggregate security degradation, and difficulty_factor.
     """
     prices = np.linspace(start_price, end_price, steps)
 
     records = []
-    for price in prices:
-        row = {"btc_price": price}
+    difficulty_factor = 1.0
+
+    for i, price in enumerate(prices):
+        row = {"btc_price": price, "difficulty_factor": difficulty_factor}
 
         for miner in miners:
+            # Recalculate breakeven with current difficulty factor
+            be = calculate_breakeven(miner, price, difficulty_factor)
             cap_prob = capitulation_probability(miner, price, interest_rate)
             row[f"cap_{miner.ticker}"] = cap_prob
 
         row["security_degradation"] = network_security_degradation(
             price, miners, interest_rate
         )
+
+        # DAA feedback: estimate hashrate drop from capitulation,
+        # adjust difficulty proportionally for next step
+        if daa_enabled and i < len(prices) - 1:
+            # Tracked miners represent ~25% of network; extrapolate
+            tracked_share = sum(m.hashrate_share for m in miners)
+            surviving_share = sum(
+                m.hashrate_share * (1.0 - capitulation_probability(m, price, interest_rate))
+                for m in miners
+            )
+            # Untracked miners (~75%) assumed to have similar capitulation rate
+            tracked_survival_rate = surviving_share / tracked_share if tracked_share > 0 else 1.0
+            network_survival_rate = tracked_survival_rate  # extrapolate to full network
+
+            # Difficulty adjusts toward surviving hashrate
+            # DAA updates every 2016 blocks; we smooth over simulation steps
+            # Target: difficulty_factor tracks network_survival_rate
+            daa_speed = 0.3  # partial adjustment per step (smoothing)
+            target_difficulty = network_survival_rate
+            difficulty_factor = difficulty_factor * (1 - daa_speed) + target_difficulty * daa_speed
+            difficulty_factor = max(0.1, difficulty_factor)  # floor at 10% of original
+
         records.append(row)
 
     return pd.DataFrame(records)

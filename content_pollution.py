@@ -198,15 +198,29 @@ def calculate_pollution_probability(snapshot: BlockSnapshot) -> float:
     # Factor 4: OP_RETURN abuse (above 2% is elevated)
     op_return_score = min(snapshot.op_return_pct / 8.0, 1.0)
 
+    # Factor 5: Fee-market pushback (Easley, O'Hara & Basu, 2019)
+    # Higher fees price out low-value inscriptions; block space is an auction.
+    # At high fee levels, financial txs outbid pollution content.
+    # Baseline: 20 sat/vB median. Above ~100 sat/vB, significant pushback.
+    fee_pushback = 1.0 / (1.0 + (snapshot.avg_fee_sat_vb / 100.0) ** 2)
+    # fee_pushback ≈ 1.0 at low fees, ≈ 0.5 at 100 sat/vB, → 0 at high fees
+
     # Weighted combination
+    # Weights justified by relative importance:
+    # - inscription density (0.30): direct measure of pollution volume
+    # - flagged content (0.25): direct measure of toxic content
+    # - block utilization (0.15): pressure indicator
+    # - OP_RETURN (0.10): secondary pollution vector
+    # - fee pushback (0.20): economic self-regulation mechanism (dampener)
     raw_score = (
-        0.35 * density_score
-        + 0.30 * flag_score
-        + 0.20 * utilization_score
-        + 0.15 * op_return_score
-    )
+        0.30 * density_score
+        + 0.25 * flag_score
+        + 0.15 * utilization_score
+        + 0.10 * op_return_score
+    ) * (0.5 + 0.5 * fee_pushback)  # fee market dampens pollution at high fees
 
     # Apply sigmoid for smooth probability
+    # Threshold 0.3 chosen as midpoint where pollution becomes "likely"
     return float(expit(6.0 * (raw_score - 0.3)))
 
 
