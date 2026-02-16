@@ -113,6 +113,8 @@ where $d_t$ is the difficulty factor, $s_t$ is the network survival rate, and $\
 
 #### 3.1.4 Key Assumptions
 
+**Table 1: Key Model Assumptions and Ratings.** Summary of core assumptions underlying the miner stress model, with justifications and confidence ratings. The weakest assumption—linear extrapolation from tracked to untracked miners—is flagged as questionable and subjected to sensitivity analysis in Section 5.
+
 | Assumption | Justification | Rating |
 |---|---|---|
 | Network hashrate 850 EH/s | Mid-2025 estimate from blockchain.com | Reasonable |
@@ -195,6 +197,8 @@ Each exit event reduces BTC price through the Almgren-Chriss impact model. The r
 
 ### 4.1 Miner Capitulation
 
+**Table 2: Public Miner Breakeven Prices and Financial Health (Mid-2025).** Estimated breakeven BTC prices, EBITDA margins, and leverage ratios for six major public miners. CleanSpark shows the lowest breakeven at $49,470, while Cipher Mining faces the highest at $68,816 with negative margins, indicating acute vulnerability to price declines below $70K.
+
 | Miner | Breakeven Price | EBITDA Margin | Debt/Cash |
 |-------|----------------|---------------|-----------|
 | CleanSpark (CLSK) | $49,470 | 18.8% | 1.3x |
@@ -221,6 +225,8 @@ Each exit event reduces BTC price through the Almgren-Chriss impact model. The r
 ![Figure 2: Content pollution probability and saturation curve with fee-market dampening. The figure comprises four subplots: (top-left) observed toxic block probability over time with a logistic saturation fit converging to a 39.7% asymptote, showing rapid growth after late 2022 that plateaus by mid-2023; (top-right) inscription density per block over time, with bars rising from near-zero pre-2023 to peaks exceeding 100 inscriptions per block; (bottom-left) the fee-market pushback multiplier as a function of average fee rate, illustrating how the dampening factor approaches zero at high fee levels and thereby suppresses low-value inscriptions; (bottom-right) the composite pollution score decomposed by weighted factor contributions. The saturation well below 100% confirms that the fee-auction mechanism provides an endogenous ceiling on content pollution, as modeled in Section 3.2.2.](../output/content_pollution.png)
 
 ### 4.3 Hashrate Concentration
+
+**Table 3: Hashrate Concentration and Censorship Resistance Metrics.** Current network decentralization indicators showing that only 3 entities control majority hashrate (Nakamoto Coefficient = 3). The 51% attack cost of ~$5.9B/yr, while substantial, remains within reach of nation-state actors.
 
 | Metric | Value | Assessment |
 |--------|-------|------------|
@@ -253,6 +259,8 @@ Under the Almgren-Chriss impact model, the cascade dynamics differ significantly
 ### 5.1 Parameter Sensitivity
 
 We test sensitivity to key model parameters:
+
+**Table 4: Parameter Sensitivity Analysis.** Ranges tested for each key model parameter and their impact on outputs. Permanent impact (γ) and temporary impact (η) parameters show the highest sensitivity at ±40% and ±30% respectively, identifying them as priority targets for empirical calibration.
 
 | Parameter | Base Value | Range Tested | Impact on Key Output |
 |---|---|---|---|
@@ -401,6 +409,8 @@ Output: `output/` directory with PNG visualizations and CSV data files.
 
 ### B.1 Miner Stress Parameters
 
+**Table 5: Miner Stress Model Parameters.** Input parameters for the miner capitulation and difficulty adjustment model, sourced from blockchain data and industry reports.
+
 | Parameter | Value | Source |
 |---|---|---|
 | Network hashrate | 850 EH/s | Blockchain.com, mid-2025 |
@@ -411,6 +421,8 @@ Output: `output/` directory with PNG visualizations and CSV data files.
 
 ### B.2 Content Pollution Parameters
 
+**Table 6: Content Pollution Model Parameters.** Parameters governing the inscription density, fee pushback, and flagging sensitivity components of the pollution sub-model.
+
 | Parameter | Value | Source |
 |---|---|---|
 | Max block size | 4.0 MB (weight) | Bitcoin protocol (SegWit) |
@@ -420,6 +432,8 @@ Output: `output/` directory with PNG visualizations and CSV data files.
 
 ### B.3 Hashrate Concentration Parameters
 
+**Table 7: Hashrate Concentration Model Parameters.** Data sources for mining pool shares, geographic distribution, and regulatory compliance estimates used in the decentralization assessment.
+
 | Parameter | Value | Source |
 |---|---|---|
 | Pool data | Mid-2025 estimates | BTC.com, mempool.space |
@@ -427,6 +441,8 @@ Output: `output/` directory with PNG visualizations and CSV data files.
 | KYC/Gov compliance multipliers | 0.1×–2.0× | Expert estimate (sensitivity needed) |
 
 ### B.4 Institutional Exit Parameters
+
+**Table 8: Institutional Exit Cascade Parameters.** Calibration values for the market impact model governing ETF-driven selling cascades, including temporary and permanent price impact coefficients.
 
 | Parameter | Value | Source |
 |---|---|---|

@@ -125,6 +125,8 @@ where $d_t$ is the difficulty factor, $s_t$ is the network survival rate, and $\
 | DAA adjustment speed α=0.3 | Smoothing parameter; real DAA is stepwise every 2016 blocks | Approximation |
 | Linear extrapolation of tracked miner capitulation to full network | Private miners may have different cost structures | Questionable — sensitivity tested |
 
+: Key model assumptions with justifications and confidence ratings. The weakest assumption—linear extrapolation from tracked to untracked miners—is flagged as questionable and subjected to sensitivity analysis. {#tbl-assumptions}
+
 : Miner stress model assumptions {#tbl-miner-assumptions}
 
 ### Blockchain Content Pollution {#sec-content-pollution}
@@ -208,7 +210,7 @@ Each exit event reduces BTC price through the Almgren-Chriss impact model. The r
 | Marathon Digital (MARA) | \$66,636 | 12.4% | 4.0x |
 | Cipher Mining (CIFR) | \$68,816 | -13.3% | 4.0x |
 
-: Miner breakeven prices and financial metrics {#tbl-miner-breakeven}
+: Public miner breakeven prices and financial health (mid-2025). CleanSpark shows the lowest breakeven at \$49,470 while Cipher Mining faces the highest at \$68,816 with negative margins, indicating acute vulnerability to price declines below \$70K. {#tbl-miner-breakeven}
 
 *Note: Breakeven prices are lower than pre-revision estimates due to corrected overhead calculation that avoids double-counting energy costs in both the breakeven formula and the EBITDA-based overhead factor.*
 
@@ -236,7 +238,7 @@ Each exit event reduces BTC price through the Almgren-Chriss impact model. The r
 | Censorship Resistance Score | ~49/100 | Moderate-Low |
 | 51% attack cost | ~\$5.9B/yr | Achievable for nation-states |
 
-: Hashrate concentration metrics {#tbl-hashrate}
+: Hashrate concentration and censorship resistance metrics. Only 3 entities control majority hashrate (Nakamoto Coefficient = 3), and the 51% attack cost of ~\$5.9B/yr remains within reach of nation-state actors. {#tbl-hashrate}
 
 **Key Finding:** Only 3 entities (DCG/Foundry 30%, Bitmain/AntPool 18%, F2Pool 12%) control >50% of hashrate. However, this overstates censorship risk: Stratum V2 adoption and pool-hopping dynamics provide additional resilience not captured by static pool-share analysis [@vernetti2023; @cong2021].
 
@@ -269,7 +271,7 @@ We test sensitivity to key model parameters:
 | Permanent impact ($\gamma$) | 0.05 | [0.02, 0.10] | ±40% on cascade cumulative impact |
 | Pollution weight allocation | See @sec-content-pollution | ±50% per weight | ±15% on pollution probability |
 
-: Parameter sensitivity analysis {#tbl-sensitivity}
+: Parameter sensitivity analysis. Permanent impact ($\gamma$) and temporary impact ($\eta$) show the highest sensitivity at ±40% and ±30% respectively, identifying them as priority targets for empirical calibration. {#tbl-sensitivity}
 
 ### Key Sensitivities
 
@@ -384,7 +386,7 @@ Output: `output/` directory with PNG visualizations and CSV data files.
 | DAA adjustment speed | $\alpha = 0.3$ | Smoothing approximation |
 | Logistic steepness | $k = 5.0$ | Calibrated for gradual transition |
 
-: Miner stress parameters {#tbl-miner-params}
+: Miner stress model parameters sourced from blockchain data and industry reports. {#tbl-miner-params}
 
 ### B.2 Content Pollution Parameters {.unnumbered}
 
@@ -395,7 +397,7 @@ Output: `output/` directory with PNG visualizations and CSV data files.
 | Density normalization | 100 inscriptions/block | Observed peak density |
 | Flag sensitivity | 50× scaling | 0.2% flagged ≈ significant |
 
-: Content pollution parameters {#tbl-pollution-params}
+: Content pollution model parameters governing inscription density, fee pushback, and flagging sensitivity. {#tbl-pollution-params}
 
 ### B.3 Hashrate Concentration Parameters {.unnumbered}
 
@@ -405,7 +407,7 @@ Output: `output/` directory with PNG visualizations and CSV data files.
 | Geographic data | CBECI estimates | Cambridge Centre for Alternative Finance |
 | KYC/Gov compliance multipliers | 0.1×–2.0× | Expert estimate (sensitivity needed) |
 
-: Hashrate concentration parameters {#tbl-hashrate-params}
+: Hashrate concentration data sources for mining pool shares, geographic distribution, and regulatory compliance estimates. {#tbl-hashrate-params}
 
 ### B.4 Institutional Exit Parameters {.unnumbered}
 
@@ -416,7 +418,7 @@ Output: `output/` directory with PNG visualizations and CSV data files.
 | Daily BTC volume | \$30B | CoinGecko average, mid-2025 |
 | ETF holdings data | Mid-2025 estimates | ETF issuer reports |
 
-: Institutional exit parameters {#tbl-exit-params}
+: Institutional exit cascade parameters including temporary and permanent price impact coefficients calibrated to empirical estimates. {#tbl-exit-params}
 
 ---
 
