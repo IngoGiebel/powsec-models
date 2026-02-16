@@ -266,7 +266,7 @@ risk \sep content pollution \sep Ordinals \sep ETF
 compliance \sep Almgren-Chriss \sep 
 difficulty adjustment
 
-\ifdefined\Shaded\renewenvironment{Shaded}{\begin{tcolorbox}[borderline west={3pt}{0pt}{shadecolor}, sharp corners, breakable, interior hidden, boxrule=0pt, frame hidden, enhanced]}{\end{tcolorbox}}\fi
+\ifdefined\Shaded\renewenvironment{Shaded}{\begin{tcolorbox}[enhanced, breakable, frame hidden, interior hidden, sharp corners, borderline west={3pt}{0pt}{shadecolor}, boxrule=0pt]}{\end{tcolorbox}}\fi
 
 \textbf{Repository:}
 \href{https://github.com/IngoGiebel/powsec-models}{github.com/IngoGiebel/powsec-models}\\
@@ -275,7 +275,7 @@ difficulty adjustment
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
 \hypertarget{introduction}{%
-\section{1. Introduction}\label{introduction}}
+\section{Introduction}\label{introduction}}
 
 This paper presents a unified quantitative framework for assessing four
 interconnected risks to Bitcoin's Proof-of-Work security model: miner
@@ -285,7 +285,7 @@ overview of Bitcoin's core mechanisms before motivating our research
 questions and contributions.
 
 \hypertarget{bitcoin-in-a-nutshell}{%
-\subsection{1.1 Bitcoin in a Nutshell}\label{bitcoin-in-a-nutshell}}
+\subsection{Bitcoin in a Nutshell}\label{bitcoin-in-a-nutshell}}
 
 Bitcoin is a decentralized digital currency introduced by Nakamoto
 (2008) that operates without any central authority --- no central bank,
@@ -372,7 +372,7 @@ fee-market thermostat mechanism is depicted in
 Figure~\ref{fig-fee-thermostat}.
 
 \hypertarget{motivation}{%
-\subsection{1.2 Motivation}\label{motivation}}
+\subsection{Motivation}\label{motivation}}
 
 Bitcoin's security model fundamentally relies on the economic incentives
 of Proof-of-Work mining. While the theoretical foundations are
@@ -394,7 +394,7 @@ hashrate concentration analysis, and institutional exit cascade
 simulation into a coherent risk assessment.
 
 \hypertarget{research-questions}{%
-\subsection{1.3 Research Questions}\label{research-questions}}
+\subsection{Research Questions}\label{research-questions}}
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
@@ -416,7 +416,7 @@ simulation into a coherent risk assessment.
 \end{enumerate}
 
 \hypertarget{contributions}{%
-\subsection{1.4 Contributions}\label{contributions}}
+\subsection{Contributions}\label{contributions}}
 
 \begin{itemize}
 \tightlist
@@ -438,7 +438,7 @@ simulation into a coherent risk assessment.
 
 \begin{figure}
 
-{\centering \includegraphics[width=1\textwidth,height=\textheight]{../output/bitcoin_mining_flow.png}
+{\centering \includegraphics[width=0.95\textwidth,height=\textheight]{../output/bitcoin_mining_flow.png}
 
 }
 
@@ -510,14 +510,14 @@ Bitcoin's fixed 4-million weight-unit block capacity.}
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
 \hypertarget{related-work}{%
-\section{2. Related Work}\label{related-work}}
+\section{Related Work}\label{related-work}}
 
 This section reviews the four bodies of literature most relevant to our
 analysis: mining economics, network concentration, content pollution,
 and market microstructure.
 
 \hypertarget{mining-economics-difficulty-adjustment}{%
-\subsection{2.1 Mining Economics \& Difficulty
+\subsection{Mining Economics \& Difficulty
 Adjustment}\label{mining-economics-difficulty-adjustment}}
 
 Nakamoto (2008) established the foundational incentive structure for PoW
@@ -532,7 +532,7 @@ for block space --- a finding central to our fee-market dampening of
 content pollution.
 
 \hypertarget{network-concentration-censorship}{%
-\subsection{2.2 Network Concentration \&
+\subsection{Network Concentration \&
 Censorship}\label{network-concentration-censorship}}
 
 Gencer et al. (2018) provided the first rigorous measurement of
@@ -548,7 +548,7 @@ for censorship resistance that we note as a limitation of pool-level
 analysis.
 
 \hypertarget{content-pollution-block-space-economics}{%
-\subsection{2.3 Content Pollution \& Block Space
+\subsection{Content Pollution \& Block Space
 Economics}\label{content-pollution-block-space-economics}}
 
 Wendl et al. (2025) provided the first systematic analysis of Bitcoin
@@ -558,7 +558,7 @@ inscription demand competes with financial transactions through the fee
 auction mechanism --- the key insight behind our fee-pushback factor.
 
 \hypertarget{market-microstructure-institutional-adoption}{%
-\subsection{2.4 Market Microstructure \& Institutional
+\subsection{Market Microstructure \& Institutional
 Adoption}\label{market-microstructure-institutional-adoption}}
 
 Almgren and Chriss (2001) developed the foundational model for optimal
@@ -573,18 +573,18 @@ our institutional exit cascade model.
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
 \hypertarget{methodology}{%
-\section{3. Methodology}\label{methodology}}
+\section{Methodology}\label{methodology}}
 
 This section details the four simulation models that comprise our
 framework. Each subsection describes the model mechanics, data sources,
 and key assumptions.
 
 \hypertarget{miner-capitulation-stress-test-miner_stress.py}{%
-\subsection{\texorpdfstring{3.1 Miner Capitulation Stress Test
-(\texttt{miner\_stress.py})}{3.1 Miner Capitulation Stress Test (miner\_stress.py)}}\label{miner-capitulation-stress-test-miner_stress.py}}
+\subsection{\texorpdfstring{Miner Capitulation Stress Test
+(\texttt{miner\_stress.py})}{Miner Capitulation Stress Test (miner\_stress.py)}}\label{miner-capitulation-stress-test-miner_stress.py}}
 
 \hypertarget{model-description}{%
-\subsubsection{3.1.1 Model Description}\label{model-description}}
+\subsubsection{Model Description}\label{model-description}}
 
 We model miner capitulation probability as a function of BTC price
 relative to each miner's breakeven cost. The breakeven price is
@@ -612,7 +612,7 @@ pressure) - Interest rate environment (refinancing risk) - Cash runway
 in months (for unprofitable miners)
 
 \hypertarget{difficulty-adjustment-algorithm-daa-feedback}{%
-\subsubsection{3.1.2 Difficulty Adjustment Algorithm (DAA)
+\subsubsection{Difficulty Adjustment Algorithm (DAA)
 Feedback}\label{difficulty-adjustment-algorithm-daa-feedback}}
 
 A critical innovation over static analysis: when miners capitulate,
@@ -630,7 +630,7 @@ results of the stress test under this model are shown in
 Figure~\ref{fig-stress-test}.
 
 \hypertarget{data-sources}{%
-\subsubsection{3.1.3 Data Sources}\label{data-sources}}
+\subsubsection{Data Sources}\label{data-sources}}
 
 \begin{itemize}
 \tightlist
@@ -642,18 +642,31 @@ Figure~\ref{fig-stress-test}.
 \end{itemize}
 
 \hypertarget{key-assumptions}{%
-\subsubsection{3.1.4 Key Assumptions}\label{key-assumptions}}
+\subsubsection{Key Assumptions}\label{key-assumptions}}
 
-\textbf{Table 1: Key Model Assumptions and Ratings.} Summary of core
-assumptions underlying the miner stress model, with justifications and
-confidence ratings. The weakest assumption---linear extrapolation from
-tracked to untracked miners---is flagged as questionable and subjected
-to sensitivity analysis in Section 5.
+Table~\ref{tbl-assumptions} summarizes the core assumptions underlying
+the miner stress model, with justifications and confidence ratings. The
+weakest assumption --- linear extrapolation from tracked to untracked
+miners --- is flagged as questionable and subjected to sensitivity
+analysis in Section 5.
 
+\hypertarget{tbl-assumptions}{}
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}
   >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}
   >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}@{}}
+\caption{\label{tbl-assumptions}Key Model Assumptions and
+Ratings}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Assumption
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Justification
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Rating
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 Assumption
@@ -680,11 +693,11 @@ sensitivity tested \\
 \end{longtable}
 
 \hypertarget{blockchain-content-pollution-content_pollution.py}{%
-\subsection{\texorpdfstring{3.2 Blockchain Content Pollution
-(\texttt{content\_pollution.py})}{3.2 Blockchain Content Pollution (content\_pollution.py)}}\label{blockchain-content-pollution-content_pollution.py}}
+\subsection{\texorpdfstring{Blockchain Content Pollution
+(\texttt{content\_pollution.py})}{Blockchain Content Pollution (content\_pollution.py)}}\label{blockchain-content-pollution-content_pollution.py}}
 
 \hypertarget{model-description-1}{%
-\subsubsection{3.2.1 Model Description}\label{model-description-1}}
+\subsubsection{Model Description}\label{model-description-1}}
 
 Logistic saturation curve fitted to historical data on block
 utilization, inscription frequency, and flagged content ratio. Five
@@ -711,7 +724,7 @@ The resulting pollution dynamics are visualized in
 Figure~\ref{fig-content-pollution}.
 
 \hypertarget{fee-market-dampening}{%
-\subsubsection{3.2.2 Fee-Market Dampening}\label{fee-market-dampening}}
+\subsubsection{Fee-Market Dampening}\label{fee-market-dampening}}
 
 Following Easley, O'Hara, and Basu (2019) and Carter and Jeng (2023), we
 model block space as an auction where financial transactions outbid
@@ -726,7 +739,7 @@ pollution score is multiplied by
 reduce the effective pollution rate by up to \textasciitilde95\%.
 
 \hypertarget{saturation-model}{%
-\subsubsection{3.2.3 Saturation Model}\label{saturation-model}}
+\subsubsection{Saturation Model}\label{saturation-model}}
 
 \[P(t) = \frac{K}{1 + e^{-r(t - t_0)}}\]
 
@@ -734,11 +747,11 @@ where \(K\) = capacity asymptote, \(r\) = growth rate, \(t_0\) =
 midpoint.
 
 \hypertarget{hashrate-concentration-analysis-hashrate_concentration.py}{%
-\subsection{\texorpdfstring{3.3 Hashrate Concentration Analysis
-(\texttt{hashrate\_concentration.py})}{3.3 Hashrate Concentration Analysis (hashrate\_concentration.py)}}\label{hashrate-concentration-analysis-hashrate_concentration.py}}
+\subsection{\texorpdfstring{Hashrate Concentration Analysis
+(\texttt{hashrate\_concentration.py})}{Hashrate Concentration Analysis (hashrate\_concentration.py)}}\label{hashrate-concentration-analysis-hashrate_concentration.py}}
 
 \hypertarget{metrics}{%
-\subsubsection{3.3.1 Metrics}\label{metrics}}
+\subsubsection{Metrics}\label{metrics}}
 
 \begin{itemize}
 \tightlist
@@ -774,7 +787,7 @@ Figure~\ref{fig-hashrate}.
 \end{itemize}
 
 \hypertarget{limitations}{%
-\subsubsection{3.3.2 Limitations}\label{limitations}}
+\subsubsection{Limitations}\label{limitations}}
 
 \begin{itemize}
 \tightlist
@@ -791,11 +804,11 @@ Figure~\ref{fig-hashrate}.
 \end{itemize}
 
 \hypertarget{institutional-exit-cascade-institutional_exit.py}{%
-\subsection{\texorpdfstring{3.4 Institutional Exit Cascade
-(\texttt{institutional\_exit.py})}{3.4 Institutional Exit Cascade (institutional\_exit.py)}}\label{institutional-exit-cascade-institutional_exit.py}}
+\subsection{\texorpdfstring{Institutional Exit Cascade
+(\texttt{institutional\_exit.py})}{Institutional Exit Cascade (institutional\_exit.py)}}\label{institutional-exit-cascade-institutional_exit.py}}
 
 \hypertarget{model-description-hypothetical-extreme-stress-scenario}{%
-\subsubsection{3.4.1 Model Description --- Hypothetical Extreme Stress
+\subsubsection{Model Description --- Hypothetical Extreme Stress
 Scenario}\label{model-description-hypothetical-extreme-stress-scenario}}
 
 This section models a \textbf{hypothetical extreme stress scenario} in
@@ -807,7 +820,7 @@ holder has a compliance strictness parameter and pollution threshold.
 The simulation results are shown in Figure~\ref{fig-institutional-exit}.
 
 \hypertarget{market-impact-model-almgren-chriss}{%
-\subsubsection{3.4.2 Market Impact Model
+\subsubsection{Market Impact Model
 (Almgren-Chriss)}\label{market-impact-model-almgren-chriss}}
 
 Following Almgren and Chriss (2001), we decompose market impact into:
@@ -850,7 +863,7 @@ with effective market depth dropping by 50-80\%, substantially
 amplifying realized impact.
 
 \hypertarget{cascade-dynamics}{%
-\subsubsection{3.4.3 Cascade Dynamics}\label{cascade-dynamics}}
+\subsubsection{Cascade Dynamics}\label{cascade-dynamics}}
 
 Each exit event reduces BTC price through the Almgren-Chriss impact
 model. The reduced price increases pollution metric values (through
@@ -860,22 +873,28 @@ creating a positive feedback loop.
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
 \hypertarget{results}{%
-\section{4. Results}\label{results}}
+\section{Results}\label{results}}
 
 We now present the output of each simulation model, followed by
 cross-model implications.
 
 \hypertarget{miner-capitulation}{%
-\subsection{4.1 Miner Capitulation}\label{miner-capitulation}}
+\subsection{Miner Capitulation}\label{miner-capitulation}}
 
-\textbf{Table 2: Public Miner Breakeven Prices and Financial Health
-(Mid-2025).} Estimated breakeven BTC prices, EBITDA margins, and
-leverage ratios for six major public miners. CleanSpark shows the lowest
-breakeven at \$49,470, while Cipher Mining faces the highest at \$68,816
-with negative margins, indicating acute vulnerability to price declines
-below \$70K.
+Table~\ref{tbl-breakeven} presents estimated breakeven BTC prices,
+EBITDA margins, and leverage ratios for six major public miners.
+CleanSpark shows the lowest breakeven at \$49,470, while Cipher Mining
+faces the highest at \$68,816 with negative margins, indicating acute
+vulnerability to price declines below \$70K.
 
+\hypertarget{tbl-breakeven}{}
 \begin{longtable}[]{@{}llll@{}}
+\caption{\label{tbl-breakeven}Public Miner Breakeven Prices and
+Financial Health (Mid-2025)}\tabularnewline
+\toprule\noalign{}
+Miner & Breakeven Price & EBITDA Margin & Debt/Cash \\
+\midrule\noalign{}
+\endfirsthead
 \toprule\noalign{}
 Miner & Breakeven Price & EBITDA Margin & Debt/Cash \\
 \midrule\noalign{}
@@ -923,7 +942,7 @@ feedback loop described in Section 3.1.2.}
 \end{figure}
 
 \hypertarget{content-pollution}{%
-\subsection{4.2 Content Pollution}\label{content-pollution}}
+\subsection{Content Pollution}\label{content-pollution}}
 
 \begin{itemize}
 \tightlist
@@ -967,15 +986,22 @@ Section 3.2.2.}
 \end{figure}
 
 \hypertarget{hashrate-concentration}{%
-\subsection{4.3 Hashrate Concentration}\label{hashrate-concentration}}
+\subsection{Hashrate Concentration}\label{hashrate-concentration}}
 
-\textbf{Table 3: Hashrate Concentration and Censorship Resistance
-Metrics.} Current network decentralization indicators showing that only
-3 entities control majority hashrate (Nakamoto Coefficient = 3). The
-51\% attack cost of \textasciitilde\$5.9B/yr, while substantial, remains
-within reach of nation-state actors.
+Table~\ref{tbl-concentration} presents current network decentralization
+indicators showing that only 3 entities control majority hashrate
+(Nakamoto Coefficient = 3). The 51\% attack cost of
+\textasciitilde\$5.9B/yr, while substantial, remains within reach of
+nation-state actors.
 
+\hypertarget{tbl-concentration}{}
 \begin{longtable}[]{@{}lll@{}}
+\caption{\label{tbl-concentration}Hashrate Concentration and Censorship
+Resistance Metrics}\tabularnewline
+\toprule\noalign{}
+Metric & Value & Assessment \\
+\midrule\noalign{}
+\endfirsthead
 \toprule\noalign{}
 Metric & Value & Assessment \\
 \midrule\noalign{}
@@ -1020,7 +1046,7 @@ groups could theoretically achieve majority hashrate control.}
 \end{figure}
 
 \hypertarget{institutional-exit-cascade-hypothetical-extreme-stress-scenario}{%
-\subsection{4.4 Institutional Exit Cascade (Hypothetical Extreme Stress
+\subsection{Institutional Exit Cascade (Hypothetical Extreme Stress
 Scenario)}\label{institutional-exit-cascade-hypothetical-extreme-stress-scenario}}
 
 Under the Almgren-Chriss impact model, the cascade dynamics differ
@@ -1074,10 +1100,10 @@ to naive forced-selling assumptions.}
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
 \hypertarget{sensitivity-analysis}{%
-\section{5. Sensitivity Analysis}\label{sensitivity-analysis}}
+\section{Sensitivity Analysis}\label{sensitivity-analysis}}
 
 \hypertarget{parameter-sensitivity}{%
-\subsection{5.1 Parameter Sensitivity}\label{parameter-sensitivity}}
+\subsection{Parameter Sensitivity}\label{parameter-sensitivity}}
 
 We test sensitivity to key model parameters:
 
@@ -1121,7 +1147,7 @@ pollution probability \\
 \end{longtable}
 
 \hypertarget{key-sensitivities}{%
-\subsection{5.2 Key Sensitivities}\label{key-sensitivities}}
+\subsection{Key Sensitivities}\label{key-sensitivities}}
 
 The model is most sensitive to: 1. \textbf{Almgren-Chriss coefficients}
 (η, γ): These determine cascade severity. Empirical calibration from
@@ -1133,7 +1159,7 @@ quickly the network stabilizes after miner capitulation. The real DAA is
 a step function (every 2016 blocks), while we use continuous smoothing.
 
 \hypertarget{robustness}{%
-\subsection{5.3 Robustness}\label{robustness}}
+\subsection{Robustness}\label{robustness}}
 
 Results are qualitatively robust across parameter ranges: the Nakamoto
 Coefficient of 3 is a structural fact, fee-market pushback always
@@ -1144,10 +1170,10 @@ order-of-magnitude estimates rather than point predictions.
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
 \hypertarget{discussion}{%
-\section{6. Discussion}\label{discussion}}
+\section{Discussion}\label{discussion}}
 
 \hypertarget{interconnected-risks}{%
-\subsection{6.1 Interconnected Risks}\label{interconnected-risks}}
+\subsection{Interconnected Risks}\label{interconnected-risks}}
 
 The four risk vectors form feedback loops: - Miner capitulation →
 reduced hashrate → increased concentration → lower censorship resistance
@@ -1158,7 +1184,7 @@ miner exit → difficulty adjustment → reduced breakeven → fewer exits -
 pushback → reduced pollution
 
 \hypertarget{limitations-1}{%
-\subsection{6.2 Limitations}\label{limitations-1}}
+\subsection{Limitations}\label{limitations-1}}
 
 \begin{itemize}
 \tightlist
@@ -1202,7 +1228,7 @@ pushback → reduced pollution
 \end{itemize}
 
 \hypertarget{miner-to-aihpc-pivot}{%
-\subsection{6.3 Miner-to-AI/HPC Pivot}\label{miner-to-aihpc-pivot}}
+\subsection{Miner-to-AI/HPC Pivot}\label{miner-to-aihpc-pivot}}
 
 A significant structural trend is the pivot of Bitcoin mining companies
 toward AI and high-performance computing (HPC) hosting. TeraWulf (WULF)
@@ -1240,7 +1266,7 @@ This pivot has important implications for our miner stress model
 \end{itemize}
 
 \hypertarget{implications-for-investors}{%
-\subsection{6.4 Implications for
+\subsection{Implications for
 Investors}\label{implications-for-investors}}
 
 \begin{itemize}
@@ -1260,7 +1286,7 @@ Investors}\label{implications-for-investors}}
 \end{itemize}
 
 \hypertarget{implications-for-bitcoin-governance}{%
-\subsection{6.5 Implications for Bitcoin
+\subsection{Implications for Bitcoin
 Governance}\label{implications-for-bitcoin-governance}}
 
 \begin{itemize}
@@ -1279,7 +1305,7 @@ Governance}\label{implications-for-bitcoin-governance}}
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
 \hypertarget{conclusion}{%
-\section{7. Conclusion}\label{conclusion}}
+\section{Conclusion}\label{conclusion}}
 
 Our quantitative analysis reveals that Bitcoin's PoW security model
 faces significant, interconnected vulnerabilities across mining
@@ -1301,7 +1327,7 @@ research.
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
 \hypertarget{future-work}{%
-\section{8. Future Work}\label{future-work}}
+\section{Future Work}\label{future-work}}
 
 \begin{itemize}
 \tightlist
@@ -1442,10 +1468,9 @@ files.
 Parameters}\label{appendix-b-model-parameters}}
 \addcontentsline{toc}{section}{Appendix B: Model Parameters}
 
-\hypertarget{b.1-miner-stress-parameters}{%
-\subsection*{B.1 Miner Stress
-Parameters}\label{b.1-miner-stress-parameters}}
-\addcontentsline{toc}{subsection}{B.1 Miner Stress Parameters}
+\hypertarget{miner-stress-parameters}{%
+\subsection*{Miner Stress Parameters}\label{miner-stress-parameters}}
+\addcontentsline{toc}{subsection}{Miner Stress Parameters}
 
 \textbf{Table 5: Miner Stress Model Parameters.} Input parameters for
 the miner capitulation and difficulty adjustment model, sourced from
@@ -1475,10 +1500,10 @@ DAA adjustment speed & α = 0.3 & Smoothing approximation \\
 Logistic steepness & k = 5.0 & Calibrated for gradual transition \\
 \end{longtable}
 
-\hypertarget{b.2-content-pollution-parameters}{%
-\subsection*{B.2 Content Pollution
-Parameters}\label{b.2-content-pollution-parameters}}
-\addcontentsline{toc}{subsection}{B.2 Content Pollution Parameters}
+\hypertarget{content-pollution-parameters}{%
+\subsection*{Content Pollution
+Parameters}\label{content-pollution-parameters}}
+\addcontentsline{toc}{subsection}{Content Pollution Parameters}
 
 \textbf{Table 6: Content Pollution Model Parameters.} Parameters
 governing the inscription density, fee pushback, and flagging
@@ -1508,10 +1533,10 @@ density \\
 Flag sensitivity & 50× scaling & 0.2\% flagged ≈ significant \\
 \end{longtable}
 
-\hypertarget{b.3-hashrate-concentration-parameters}{%
-\subsection*{B.3 Hashrate Concentration
-Parameters}\label{b.3-hashrate-concentration-parameters}}
-\addcontentsline{toc}{subsection}{B.3 Hashrate Concentration Parameters}
+\hypertarget{hashrate-concentration-parameters}{%
+\subsection*{Hashrate Concentration
+Parameters}\label{hashrate-concentration-parameters}}
+\addcontentsline{toc}{subsection}{Hashrate Concentration Parameters}
 
 \textbf{Table 7: Hashrate Concentration Model Parameters.} Data sources
 for mining pool shares, geographic distribution, and regulatory
@@ -1540,10 +1565,10 @@ KYC/Gov compliance multipliers & 0.1×--2.0× & Expert estimate
 (sensitivity needed) \\
 \end{longtable}
 
-\hypertarget{b.4-institutional-exit-parameters}{%
-\subsection*{B.4 Institutional Exit
-Parameters}\label{b.4-institutional-exit-parameters}}
-\addcontentsline{toc}{subsection}{B.4 Institutional Exit Parameters}
+\hypertarget{institutional-exit-parameters}{%
+\subsection*{Institutional Exit
+Parameters}\label{institutional-exit-parameters}}
+\addcontentsline{toc}{subsection}{Institutional Exit Parameters}
 
 \textbf{Table 8: Institutional Exit Cascade Parameters.} Calibration
 values for the market impact model governing ETF-driven selling
