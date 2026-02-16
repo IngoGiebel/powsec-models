@@ -10,7 +10,7 @@
 
 ## Abstract
 
-We present a quantitative framework for assessing systemic risks in Bitcoin's Proof-of-Work (PoW) security model through four interconnected simulation models. Our analysis examines (1) miner capitulation dynamics under price stress with difficulty adjustment feedback, (2) blockchain content pollution via Ordinals and OP_RETURN abuse with fee-market dampening, (3) hashrate concentration and censorship resistance, and (4) institutional exit cascades triggered by compliance concerns using Almgren-Chriss optimal execution modeling. Results indicate critical vulnerabilities: a Nakamoto Coefficient of only 3, content pollution approaching 54% saturation (down from earlier estimates after incorporating fee-market dynamics), and a potential institutional exit cascade scenario. These findings suggest that Bitcoin's security guarantees may be more fragile than commonly assumed, though endogenous stabilization mechanisms (difficulty adjustment, fee markets) provide meaningful resilience.
+We present a quantitative framework for assessing systemic risks in Bitcoin's Proof-of-Work (PoW) security model through four interconnected simulation models. Our analysis examines (1) miner capitulation dynamics under price stress with difficulty adjustment feedback, (2) blockchain content pollution via Ordinals and OP_RETURN abuse with fee-market dampening, (3) hashrate concentration and censorship resistance, and (4) institutional exit cascades triggered by compliance concerns using Almgren-Chriss optimal execution modeling. Results indicate critical vulnerabilities: a Nakamoto Coefficient of only 3, content pollution approaching ~40% saturation (down from earlier estimates after incorporating fee-market dynamics), and a potential institutional exit cascade scenario. These findings suggest that Bitcoin's security guarantees may be more fragile than commonly assumed, though endogenous stabilization mechanisms (difficulty adjustment, fee markets) provide meaningful resilience.
 
 **Keywords:** Bitcoin, Proof-of-Work, mining economics, hashrate concentration, censorship resistance, institutional risk, content pollution, Ordinals, ETF compliance, Almgren-Chriss, difficulty adjustment
 
@@ -118,7 +118,7 @@ Following Easley, O'Hara & Basu (2019) and Carter & Jeng (2023), we model block 
 
 $$f_{\text{pushback}} = \frac{1}{1 + (\bar{f} / f_0)^2}$$
 
-where $\bar{f}$ is the average fee (sat/vB) and $f_0 = 100$ sat/vB is the reference level at which significant pushback occurs. The raw pollution score is multiplied by $(0.5 + 0.5 \cdot f_{\text{pushback}})$, allowing fees to halve the effective pollution rate at most.
+where $\bar{f}$ is the average fee (sat/vB) and $f_0 = 100$ sat/vB is the reference level at which significant pushback occurs. The raw pollution score is multiplied by $(0.05 + 0.95 \cdot f_{\text{pushback}})$, allowing extreme fees to reduce the effective pollution rate by up to ~95%.
 
 #### 3.2.3 Saturation Model
 
@@ -160,9 +160,9 @@ Following Almgren & Chriss (2001), we decompose market impact into:
 - **Temporary impact** (intraday, decays): $\Delta P_{\text{temp}} = \eta \sqrt{\phi}$ where $\phi$ is participation rate (daily sell / daily volume) and $\eta = 0.10$ is the temporary impact coefficient
 - **Permanent impact** (structural, cumulative): $\Delta P_{\text{perm}} = \gamma \cdot \phi \cdot T$ where $\gamma = 0.05$ is the permanent impact coefficient and $T$ is the number of trading days
 
-This creates a genuine execution-speed tradeoff: faster liquidation produces higher temporary impact but less cumulative permanent impact, while slower liquidation reduces daily disruption but accumulates structural price decline over time.
+Note that permanent impact $\gamma \cdot \phi \cdot T = \gamma \cdot (Q/T) / V \cdot T = \gamma \cdot Q / V$ — the $T$ cancels, so total permanent impact is **independent of execution speed**. The genuine tradeoff is between temporary and timing risk: faster execution incurs higher daily temporary (intraday) slippage due to elevated participation rates, but reduces exposure to adverse price drift during the holding period. Slower execution lowers daily market disruption but leaves the remaining position exposed to exogenous price movements (volatility risk, information arrival, correlated selling) for longer. This is the classic Almgren-Chriss frontier between execution cost and timing risk.
 
-**Calibration:** $\eta = 0.10$ and $\gamma = 0.05$ are calibrated to produce approximately 3-5% total impact for selling 100,000 BTC over 30-90 days at $30B daily volume, consistent with empirical estimates from Makarov & Schoar (2020).
+**Calibration:** $\eta = 0.10$ and $\gamma = 0.05$ are calibrated to produce approximately 3-5% total impact for selling 100,000 BTC over 30-90 days at $30B daily volume, consistent with empirical estimates from Makarov & Schoar (2020). Note that $30B daily volume reflects normal market conditions; Makarov & Schoar (2020) document that liquidity can evaporate during systemic stress, with effective market depth dropping by 50-80%, substantially amplifying realized impact.
 
 #### 3.4.3 Cascade Dynamics
 
@@ -187,13 +187,17 @@ Each exit event reduces BTC price through the Almgren-Chriss impact model. The r
 
 **Key Finding (with DAA):** Under the DAA feedback model, miner capitulation is partially self-correcting. As weak miners exit, difficulty drops, improving profitability for survivors. The network stabilizes at a lower but sustainable hashrate level, consistent with Prat & Walter (2021).
 
+![Figure 1: Miner capitulation stress test under price decline scenarios with DAA feedback](output/stress_test.png)
+
 ### 4.2 Content Pollution
 
-- Saturation asymptote: **~54%** (revised down from 85% after incorporating fee-market dynamics and inscription gating)
+- Saturation asymptote: **~40%** (revised down from 54% after strengthening fee-market dampening from 50% to 95% maximum reduction)
 - Growth rate: 0.666 (rapid initial growth, but dampened by rising fees)
-- Fee-market pushback reduces effective pollution by up to 50% during high-fee periods
+- Fee-market pushback reduces effective pollution by up to ~95% during extreme-fee periods
 
 **Key Finding:** The fee auction mechanism provides meaningful self-regulation of block space pollution. As inscriptions fill blocks and push fees up, low-value inscriptions are priced out, creating an endogenous ceiling well below 100%.
+
+![Figure 2: Content pollution probability and saturation curve with fee-market dampening](output/content_pollution.png)
 
 ### 4.3 Hashrate Concentration
 
@@ -207,6 +211,8 @@ Each exit event reduces BTC price through the Almgren-Chriss impact model. The r
 
 **Key Finding:** Only 3 entities (DCG/Foundry 30%, Bitmain/AntPool 18%, F2Pool 12%) control >50% of hashrate. However, this overstates censorship risk: Stratum V2 adoption and pool-hopping dynamics provide additional resilience not captured by static pool-share analysis (Vernetti, 2023; Cong, He & Li, 2021).
 
+![Figure 3: Hashrate concentration and censorship resistance metrics](output/hashrate_concentration.png)
+
 ### 4.4 Institutional Exit Cascade
 
 Under the Almgren-Chriss impact model, the cascade dynamics differ significantly from the naive square-root model:
@@ -216,6 +222,8 @@ Under the Almgren-Chriss impact model, the cascade dynamics differ significantly
 - The execution-speed tradeoff is now properly modeled: total impact depends meaningfully on liquidation timeline
 
 **Key Finding:** A complete institutional exit cascade produces a smaller but more credibly modeled price impact than the pre-revision estimate. The separation of temporary and permanent impact reveals that orderly liquidation significantly reduces market disruption.
+
+![Figure 4: Institutional exit cascade simulation with Almgren-Chriss market impact](output/institutional_exit.png)
 
 ---
 
@@ -262,8 +270,9 @@ The four risk vectors form feedback loops:
 - **Static vs. dynamic**: While we add DAA feedback to miner stress and fee-market dynamics to pollution, the models remain largely open-loop. A full agent-based model (ABM) with coupled feedback across all four modules is left for future work.
 - **Pool hashrate ≠ censorship power**: Stratum V2 and pool-hopping dynamics significantly complicate censorship analysis (Vernetti, 2023; Cong, He & Li, 2021).
 - **ETF compliance triggers are speculative**: The pollution thresholds and compliance strictness parameters are estimated, not derived from actual compliance frameworks. ETFs hold UTXOs via custodians — block content may be legally irrelevant unless OFAC sanctions specific addresses.
-- **Market impact calibration**: The Almgren-Chriss parameters (η, γ) are calibrated to rough empirical estimates. BTC-specific market microstructure research would improve precision.
+- **Market impact calibration**: The Almgren-Chriss parameters (η, γ) are calibrated to rough empirical estimates. BTC-specific market microstructure research would improve precision. Additionally, daily trading volume is assumed constant at $30B, but Makarov & Schoar (2020) show that volume and market depth shrink substantially during systemic crashes — precisely when institutional exits would occur — amplifying realized market impact beyond our baseline estimates.
 - **Tracked miners represent ~25% of network**: Private miners with different cost structures are extrapolated, introducing uncertainty.
+- **DAA epoch stretch under mass capitulation**: When significant hashrate (e.g. 50%) capitulates, block times lengthen proportionally (from ~10 to ~20 minutes), stretching the 2016-block DAA adjustment window from ~14 to ~28 calendar days. Our exponential smoothing with constant time steps masks this real-time dilation effect, underestimating the duration of economic stress on surviving miners before difficulty relief arrives.
 
 ### 6.3 Implications for Investors
 

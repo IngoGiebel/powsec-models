@@ -217,7 +217,7 @@ def calculate_pollution_probability(snapshot: BlockSnapshot) -> float:
         + 0.25 * flag_score
         + 0.15 * utilization_score
         + 0.10 * op_return_score
-    ) * (0.5 + 0.5 * fee_pushback)  # fee market dampens pollution at high fees
+    ) * (0.05 + 0.95 * fee_pushback)  # fee market dampens pollution at high fees (up to ~95% reduction)
 
     # Gate on inscription/flagged content existence: without inscriptions,
     # pollution probability should be near zero regardless of utilization/OP_RETURN.
