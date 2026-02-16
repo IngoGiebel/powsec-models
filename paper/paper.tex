@@ -249,14 +249,17 @@ Almgren-Chriss optimal execution modeling. Results indicate critical
 vulnerabilities: a Nakamoto Coefficient of only 3, content pollution
 approaching \textasciitilde40\% saturation (down from earlier estimates
 after incorporating fee-market dynamics), and a potential institutional
-exit cascade scenario. Additionally, the growing trend of Bitcoin miners
-pivoting to AI/HPC hosting (e.g., TeraWulf with Google Cloud, Core
-Scientific with CoreWeave) introduces a structural shift in miner
-economics that reduces hashrate concentration risk while increasing the
-vulnerability of pure-play BTC miners. These findings suggest that
-Bitcoin's security guarantees may be more fragile than commonly assumed,
-though endogenous stabilization mechanisms (difficulty adjustment, fee
-markets) provide meaningful resilience.
+exit cascade scenario. We employ a continuous-time partial adjustment
+for the Difficulty Adjustment Algorithm (DAA) to capture the stabilizing
+feedback of difficulty reduction during miner capitulation events.
+Additionally, the growing trend of Bitcoin miners pivoting to AI/HPC
+hosting (e.g., TeraWulf with Google Cloud, Core Scientific with
+CoreWeave) introduces a structural shift in miner economics that reduces
+hashrate concentration risk while increasing the vulnerability of
+pure-play BTC miners. These findings suggest that Bitcoin's security
+guarantees may be more fragile than commonly assumed, though endogenous
+stabilization mechanisms (difficulty adjustment, fee markets) provide
+meaningful resilience.
 \end{abstract}
 {\bfseries \emph Keywords}
 \def\sep{\textbullet\ }
@@ -266,7 +269,7 @@ risk \sep content pollution \sep Ordinals \sep ETF
 compliance \sep Almgren-Chriss \sep 
 difficulty adjustment
 
-\ifdefined\Shaded\renewenvironment{Shaded}{\begin{tcolorbox}[boxrule=0pt, borderline west={3pt}{0pt}{shadecolor}, breakable, enhanced, interior hidden, sharp corners, frame hidden]}{\end{tcolorbox}}\fi
+\ifdefined\Shaded\renewenvironment{Shaded}{\begin{tcolorbox}[frame hidden, sharp corners, interior hidden, enhanced, breakable, boxrule=0pt, borderline west={3pt}{0pt}{shadecolor}]}{\end{tcolorbox}}\fi
 
 \textbf{Repository:}
 \href{https://github.com/IngoGiebel/powsec-models}{github.com/IngoGiebel/powsec-models}\\
@@ -743,8 +746,10 @@ reduce the effective pollution rate by up to \textasciitilde95\%.
 
 \[P(t) = \frac{K}{1 + e^{-r(t - t_0)}}\]
 
-where \(K\) = capacity asymptote, \(r\) = growth rate, \(t_0\) =
-midpoint.
+where \(K\) is the capacity asymptote (maximum achievable pollution
+fraction), \(r\) is the logistic growth rate governing how quickly
+pollution accelerates, and \(t_0\) is the inflection midpoint (the time
+at which pollution reaches \(K/2\)).
 
 \hypertarget{hashrate-concentration-analysis-hashrate_concentration.py}{%
 \subsection{\texorpdfstring{Hashrate Concentration Analysis
@@ -868,7 +873,10 @@ amplifying realized impact.
 Each exit event reduces BTC price through the Almgren-Chriss impact
 model. The reduced price increases pollution metric values (through
 reduced fee pressure) and may trigger further compliance reviews,
-creating a positive feedback loop.
+creating a positive feedback loop. This mechanism has real-world
+precedent: Tesla divested the majority of its Bitcoin holdings in 2022,
+citing environmental concerns (Tesla, Inc. 2021), demonstrating that ESG
+considerations can trigger significant institutional exits.
 
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
@@ -1217,6 +1225,24 @@ pushback → reduced pollution
   Private miners with different cost structures are extrapolated,
   introducing uncertainty.
 \item
+  \textbf{Modular architecture}: To isolate the specific mechanics of
+  each risk vector, we simulate these models as discrete components. The
+  output of one model (e.g., content pollution triggering compliance
+  concerns) informs the narrative of another (e.g., institutional exit
+  cascades), but they are not programmatically coupled in a closed
+  feedback loop. The complex, non-linear interactions between all four
+  risk vectors are synthesized analytically in the Discussion section,
+  establishing the foundation for a fully coupled Agent-Based Model
+  (ABM) in future work.
+\item
+  \textbf{OTC and derivatives buffering}: Our Almgren-Chriss market
+  impact model assumes ETF liquidations execute directly on spot
+  markets. In practice, Authorized Participants (APs) utilize
+  over-the-counter (OTC) block desks and CME Bitcoin futures to buffer
+  large redemptions, which would further dampen the transient temporary
+  impact component. Our spot-only assumption therefore represents a
+  conservative upper bound on market disruption.
+\item
   \textbf{DAA epoch stretch under mass capitulation}: When significant
   hashrate (e.g.~50\%) capitulates, block times lengthen proportionally
   (from \textasciitilde10 to \textasciitilde20 minutes), stretching the
@@ -1235,10 +1261,11 @@ toward AI and high-performance computing (HPC) hosting. TeraWulf (WULF)
 has partnered with Google Cloud to repurpose mining infrastructure for
 AI workloads, while Core Scientific (CORZ) has secured a major hosting
 contract with CoreWeave, a GPU cloud provider. This trend, documented in
-popular analysis (e.g., ``Bitcoin Miners Are Abandoning BTC,'' YouTube,
-2025), reflects the economic reality that AI/HPC hosting can offer more
-stable and higher-margin revenue than Bitcoin mining, particularly
-during periods of low BTC prices or post-halving margin compression.
+industry reports (CoinShares Research 2024) and popular analysis (e.g.,
+``Bitcoin Miners Are Abandoning BTC,'' YouTube, 2025), reflects the
+economic reality that AI/HPC hosting can offer more stable and
+higher-margin revenue than Bitcoin mining, particularly during periods
+of low BTC prices or post-halving margin compression.
 
 This pivot has important implications for our miner stress model
 (Section 3.1):
@@ -1352,6 +1379,22 @@ research.
 
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
+\hypertarget{data-and-code-availability}{%
+\section*{Data and Code Availability}\label{data-and-code-availability}}
+\addcontentsline{toc}{section}{Data and Code Availability}
+
+The complete Python 3.12+ simulation suite, parameter sets, and
+reproducible output datasets are available under the MIT License at
+\href{https://github.com/IngoGiebel/powsec-models}{github.com/IngoGiebel/powsec-models}
+and permanently archived via Zenodo (DOI: pending).
+
+\hypertarget{conflicts-of-interest}{%
+\section*{Conflicts of Interest}\label{conflicts-of-interest}}
+\addcontentsline{toc}{section}{Conflicts of Interest}
+
+The author declares no competing financial interests. This research
+received no external funding.
+
 \hypertarget{references}{%
 \section*{References}\label{references}}
 \addcontentsline{toc}{section}{References}
@@ -1380,6 +1423,11 @@ Carter, Nic, and Linda Jeng. 2023. {``Ordinals and the Fee Market.''}
 \leavevmode\vadjust pre{\hypertarget{ref-chen2025}{}}%
 Chen, Yifan et al. 2025. {``Bitcoin {ETF} Impact on Futures Markets.''}
 \emph{International Review of Financial Analysis}.
+
+\leavevmode\vadjust pre{\hypertarget{ref-coinshares2024}{}}%
+CoinShares Research. 2024. {``The Mining Report: An Overview of Bitcoin
+Mining Trends.''}
+\url{https://coinshares.com/research/bitcoin-mining-report}.
 
 \leavevmode\vadjust pre{\hypertarget{ref-cong2021}{}}%
 Cong, Lin William, Zhiguo He, and Jiasun Li. 2021. {``Decentralized
@@ -1416,6 +1464,10 @@ Efficiency.''} \emph{Applied Economics Letters} 28 (6): 433--39.
 Prat, Julien, and Benjamin Walter. 2021. {``An Equilibrium Model of the
 Market for {Bitcoin} Mining.''} \emph{Journal of Political Economy} 129
 (8): 2415--52.
+
+\leavevmode\vadjust pre{\hypertarget{ref-tesla2021btc}{}}%
+Tesla, Inc. 2021. {``Form 10-q: Quarterly Report.''}
+\url{https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany\&CIK=0001318605}.
 
 \leavevmode\vadjust pre{\hypertarget{ref-vernetti2023}{}}%
 Vernetti, Filippo. 2023. {``Stratum {V2}: The Next Generation Protocol
