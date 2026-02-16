@@ -1,2 +1,8 @@
 \usepackage{booktabs}
 \usepackage{longtable}
+\usepackage{placeins}
+% Place a \FloatBarrier before every section and subsection
+\let\oldsection\section
+\renewcommand{\section}[1]{\FloatBarrier\oldsection{#1}}
+\let\oldsubsection\subsection
+\renewcommand{\subsection}[1]{\FloatBarrier\oldsubsection{#1}}
