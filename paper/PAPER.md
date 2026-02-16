@@ -1,7 +1,8 @@
 # Quantitative Risk Assessment of Bitcoin's Proof-of-Work Security Model
 
-**Authors:** Ingo Giebel¹, with AI-assisted analysis by Dione 🌙 & Inanna ⚔️  
-**Affiliation:** ¹ Heinrich-Heine-Universität Düsseldorf, B.Sc. Quantitative Biology  
+**Authors:** Ingo Giebel, with AI-assisted analysis by Dione 🌙 & Inanna ⚔️  
+**Affiliation:** Independent Researcher  
+**ORCID:** [0009-0005-4238-000X](https://orcid.org/0009-0005-4238-000X)  
 **Date:** February 2026  
 **Repository:** [github.com/IngoGiebel/powsec-models](https://github.com/IngoGiebel/powsec-models)  
 **License:** MIT  
@@ -10,7 +11,7 @@
 
 ## Abstract
 
-We present a quantitative framework for assessing systemic risks in Bitcoin's Proof-of-Work (PoW) security model through four interconnected simulation models. Our analysis examines (1) miner capitulation dynamics under price stress with difficulty adjustment feedback, (2) blockchain content pollution via Ordinals and OP_RETURN abuse with fee-market dampening, (3) hashrate concentration and censorship resistance, and (4) institutional exit cascades triggered by compliance concerns using Almgren-Chriss optimal execution modeling. Results indicate critical vulnerabilities: a Nakamoto Coefficient of only 3, content pollution approaching ~40% saturation (down from earlier estimates after incorporating fee-market dynamics), and a potential institutional exit cascade scenario. These findings suggest that Bitcoin's security guarantees may be more fragile than commonly assumed, though endogenous stabilization mechanisms (difficulty adjustment, fee markets) provide meaningful resilience.
+We present a quantitative framework for assessing systemic risks in Bitcoin's Proof-of-Work (PoW) security model through four interconnected simulation models. Our analysis examines (1) miner capitulation dynamics under price stress with difficulty adjustment feedback, (2) blockchain content pollution via Ordinals and OP_RETURN abuse with fee-market dampening, (3) hashrate concentration and censorship resistance, and (4) institutional exit cascades triggered by compliance concerns using Almgren-Chriss optimal execution modeling. Results indicate critical vulnerabilities: a Nakamoto Coefficient of only 3, content pollution approaching ~40% saturation (down from earlier estimates after incorporating fee-market dynamics), and a potential institutional exit cascade scenario. Additionally, the growing trend of Bitcoin miners pivoting to AI/HPC hosting (e.g., TeraWulf with Google Cloud, Core Scientific with CoreWeave) introduces a structural shift in miner economics that reduces hashrate concentration risk while increasing the vulnerability of pure-play BTC miners. These findings suggest that Bitcoin's security guarantees may be more fragile than commonly assumed, though endogenous stabilization mechanisms (difficulty adjustment, fee markets) provide meaningful resilience.
 
 **Keywords:** Bitcoin, Proof-of-Work, mining economics, hashrate concentration, censorship resistance, institutional risk, content pollution, Ordinals, ETF compliance, Almgren-Chriss, difficulty adjustment
 
@@ -149,9 +150,9 @@ where $h_i$ is regional hashrate share, $r_i$ is regulatory risk score, and $N$ 
 
 ### 3.4 Institutional Exit Cascade (`institutional_exit.py`)
 
-#### 3.4.1 Model Description
+#### 3.4.1 Model Description — Hypothetical Extreme Stress Scenario
 
-Simulation of cascading ETF exits triggered by content pollution exceeding compliance thresholds. Each institutional holder has a compliance strictness parameter and pollution threshold.
+This section models a **hypothetical extreme stress scenario** in which cascading ETF exits are triggered by content pollution exceeding compliance thresholds. While we consider a full-scale coordinated institutional exit unlikely under normal market conditions, modeling the worst case provides an upper bound on systemic risk. Each institutional holder has a compliance strictness parameter and pollution threshold.
 
 #### 3.4.2 Market Impact Model (Almgren-Chriss)
 
@@ -162,7 +163,7 @@ Following Almgren & Chriss (2001), we decompose market impact into:
 
 Note that permanent impact $\gamma \cdot \phi \cdot T = \gamma \cdot (Q/T) / V \cdot T = \gamma \cdot Q / V$ — the $T$ cancels, so total permanent impact is **independent of execution speed**. The genuine tradeoff is between temporary and timing risk: faster execution incurs higher daily temporary (intraday) slippage due to elevated participation rates, but reduces exposure to adverse price drift during the holding period. Slower execution lowers daily market disruption but leaves the remaining position exposed to exogenous price movements (volatility risk, information arrival, correlated selling) for longer. This is the classic Almgren-Chriss frontier between execution cost and timing risk.
 
-**Calibration:** $\eta = 0.10$ and $\gamma = 0.05$ are calibrated to produce approximately 3-5% total impact for selling 100,000 BTC over 30-90 days at $30B daily volume, consistent with empirical estimates from Makarov & Schoar (2020). Note that $30B daily volume reflects normal market conditions; Makarov & Schoar (2020) document that liquidity can evaporate during systemic stress, with effective market depth dropping by 50-80%, substantially amplifying realized impact.
+**Calibration:** $\eta = 0.10$ and $\gamma = 0.05$ are calibrated to produce approximately 3-5% total impact for selling 100,000 BTC over 30-90 days at $30B daily volume, consistent with empirical estimates from Makarov & Schoar (2020) and the broader market microstructure literature on illiquidity premia (Amihud, 2002) and price impact modeling (Bouchaud et al., 2008). Note that $30B daily volume reflects normal market conditions; Makarov & Schoar (2020) document that liquidity can evaporate during systemic stress, with effective market depth dropping by 50-80%, substantially amplifying realized impact.
 
 #### 3.4.3 Cascade Dynamics
 
@@ -213,9 +214,9 @@ Each exit event reduces BTC price through the Almgren-Chriss impact model. The r
 
 ![Figure 3: Hashrate concentration and censorship resistance metrics](output/hashrate_concentration.png)
 
-### 4.4 Institutional Exit Cascade
+### 4.4 Institutional Exit Cascade (Hypothetical Extreme Stress Scenario)
 
-Under the Almgren-Chriss impact model, the cascade dynamics differ significantly from the naive square-root model:
+Under the Almgren-Chriss impact model, the cascade dynamics differ significantly from the naive square-root model. **Note:** These results represent a worst-case hypothetical scenario; see Section 3.4.1 for framing.
 
 - Faster exits (10 days) produce ~3.5% impact for 100k BTC
 - Slower exits (90 days) produce ~2.3% impact for 100k BTC
@@ -270,18 +271,28 @@ The four risk vectors form feedback loops:
 - **Static vs. dynamic**: While we add DAA feedback to miner stress and fee-market dynamics to pollution, the models remain largely open-loop. A full agent-based model (ABM) with coupled feedback across all four modules is left for future work.
 - **Pool hashrate ≠ censorship power**: Stratum V2 and pool-hopping dynamics significantly complicate censorship analysis (Vernetti, 2023; Cong, He & Li, 2021).
 - **ETF compliance triggers are speculative**: The pollution thresholds and compliance strictness parameters are estimated, not derived from actual compliance frameworks. ETFs hold UTXOs via custodians — block content may be legally irrelevant unless OFAC sanctions specific addresses.
-- **Market impact calibration**: The Almgren-Chriss parameters (η, γ) are calibrated to rough empirical estimates. BTC-specific market microstructure research would improve precision. Additionally, daily trading volume is assumed constant at $30B, but Makarov & Schoar (2020) show that volume and market depth shrink substantially during systemic crashes — precisely when institutional exits would occur — amplifying realized market impact beyond our baseline estimates.
+- **Market impact calibration**: The Almgren-Chriss parameters (η, γ) are calibrated to rough empirical estimates. BTC-specific market microstructure research, including time-varying market efficiency analysis (Noda, 2020), would improve precision. Additionally, daily trading volume is assumed constant at $30B, but Makarov & Schoar (2020) show that volume and market depth shrink substantially during systemic crashes — precisely when institutional exits would occur — amplifying realized market impact beyond our baseline estimates.
 - **Tracked miners represent ~25% of network**: Private miners with different cost structures are extrapolated, introducing uncertainty.
 - **DAA epoch stretch under mass capitulation**: When significant hashrate (e.g. 50%) capitulates, block times lengthen proportionally (from ~10 to ~20 minutes), stretching the 2016-block DAA adjustment window from ~14 to ~28 calendar days. Our exponential smoothing with constant time steps masks this real-time dilation effect, underestimating the duration of economic stress on surviving miners before difficulty relief arrives.
 
-### 6.3 Implications for Investors
+### 6.3 Miner-to-AI/HPC Pivot
+
+A significant structural trend is the pivot of Bitcoin mining companies toward AI and high-performance computing (HPC) hosting. TeraWulf (WULF) has partnered with Google Cloud to repurpose mining infrastructure for AI workloads, while Core Scientific (CORZ) has secured a major hosting contract with CoreWeave, a GPU cloud provider. This trend, documented in popular analysis (e.g., "Bitcoin Miners Are Abandoning BTC," YouTube, 2025), reflects the economic reality that AI/HPC hosting can offer more stable and higher-margin revenue than Bitcoin mining, particularly during periods of low BTC prices or post-halving margin compression.
+
+This pivot has important implications for our miner stress model (Section 3.1):
+
+- **Reduced BTC-dependency**: Miners with diversified AI/HPC revenue streams have effectively lower breakeven prices for their Bitcoin mining operations, as fixed infrastructure costs are partially covered by non-BTC income. This makes them more resilient to BTC price declines.
+- **Hashrate concentration dynamics**: As diversified miners are less likely to capitulate during price downturns, the miners most vulnerable to capitulation are increasingly the **pure-play BTC miners** without alternative revenue. This could paradoxically increase hashrate concentration during stress events, as only the largest, most diversified operations survive.
+- **Reduced death-spiral risk**: The AI pivot provides an economic floor for mining infrastructure value independent of BTC price, further dampening the already self-correcting capitulation dynamics described in Section 3.1.2.
+
+### 6.4 Implications for Investors
 
 - The DAA provides stronger resilience than static analysis suggests — "death spiral" scenarios are partially self-correcting
 - Fee-market dynamics provide a natural ceiling on content pollution, reducing institutional compliance risk
 - Concentration risk (Nakamoto Coefficient = 3) remains the most structurally concerning finding
 - Institutional exit cascade risk is real but likely produces smaller, more gradual impact than naive models suggest
 
-### 6.4 Implications for Bitcoin Governance
+### 6.5 Implications for Bitcoin Governance
 
 - Stratum V2 adoption should be monitored as a key indicator of true censorship resistance
 - Geographic diversification of mining is a higher priority than raw hashrate growth
@@ -315,27 +326,33 @@ These findings quantify the risk landscape to enable informed decision-making by
 
 1. Almgren, R. & Chriss, N. (2001). Optimal execution of portfolio transactions. *Journal of Risk*, 3(2), 5–39.
 
-2. Carter, N. & Jeng, L. (2023). Ordinals and the fee market. *Coin Metrics State of the Network*.
+2. Amihud, Y. (2002). Illiquidity and stock returns: Cross-section and time-series effects. *Journal of Financial Markets*, 5(1), 31–56.
 
-3. Chen, Y. et al. (2025). Bitcoin ETF impact on futures markets. *International Review of Financial Analysis*.
+3. Bouchaud, J.-P., Farmer, J. D. & Lillo, F. (2008). How markets slowly digest changes in supply and demand. In T. Hens & K. Schenk-Hoppé (Eds.), *Handbook of Financial Markets: Dynamics and Evolution* (pp. 57–160). North-Holland.
 
-4. Cong, L. W., He, Z. & Li, J. (2021). Decentralized mining in centralized pools. *Review of Financial Studies*, 34(3), 1191–1235.
+4. Carter, N. & Jeng, L. (2023). Ordinals and the fee market. *Coin Metrics State of the Network*.
 
-5. Easley, D., O'Hara, M. & Basu, S. (2019). From mining to markets: The role of Bitcoin transaction fees. *Journal of Financial Economics*, 134(1), 91–109.
+5. Chen, Y. et al. (2025). Bitcoin ETF impact on futures markets. *International Review of Financial Analysis*.
 
-6. Gencer, A. E. et al. (2018). Decentralization in Bitcoin and Ethereum networks. *Proceedings of NDSS 2018*.
+6. Cong, L. W., He, Z. & Li, J. (2021). Decentralized mining in centralized pools. *Review of Financial Studies*, 34(3), 1191–1235.
 
-7. Judmayer, A. et al. (2021). Estimating the cost of a 51% attack. *Financial Cryptography and Data Security (FC 2021)*.
+7. Easley, D., O'Hara, M. & Basu, S. (2019). From mining to markets: The role of Bitcoin transaction fees. *Journal of Financial Economics*, 134(1), 91–109.
 
-8. Makarov, I. & Schoar, A. (2020). Trading and arbitrage in cryptocurrency markets. *Journal of Financial Economics*, 135(2), 293–319.
+8. Gencer, A. E. et al. (2018). Decentralization in Bitcoin and Ethereum networks. *Proceedings of NDSS 2018*.
 
-9. Nakamoto, S. (2008). Bitcoin: A peer-to-peer electronic cash system. *bitcoin.org/bitcoin.pdf*.
+9. Judmayer, A. et al. (2021). Estimating the cost of a 51% attack. *Financial Cryptography and Data Security (FC 2021)*.
 
-10. Prat, J. & Walter, B. (2021). An equilibrium model of the market for Bitcoin mining. *Journal of Political Economy*, 129(8), 2415–2452.
+10. Makarov, I. & Schoar, A. (2020). Trading and arbitrage in cryptocurrency markets. *Journal of Financial Economics*, 135(2), 293–319.
 
-11. Vernetti, F. (2023). Stratum V2: The next generation protocol for pooled mining. *Braiins Technical Documentation*.
+11. Nakamoto, S. (2008). Bitcoin: A peer-to-peer electronic cash system. *bitcoin.org/bitcoin.pdf*.
 
-12. Wendl, M. et al. (2025). Bitcoin Ordinals: A systematic analysis. *Journal of The British Blockchain Association (JBBA)*.
+12. Noda, A. (2020). On the evolution of cryptocurrency market efficiency. *Applied Economics Letters*, 28(6), 433–439.
+
+13. Prat, J. & Walter, B. (2021). An equilibrium model of the market for Bitcoin mining. *Journal of Political Economy*, 129(8), 2415–2452.
+
+14. Vernetti, F. (2023). Stratum V2: The next generation protocol for pooled mining. *Braiins Technical Documentation*.
+
+15. Wendl, M. et al. (2025). Bitcoin Ordinals: A systematic analysis. *Journal of The British Blockchain Association (JBBA)*.
 
 ---
 
