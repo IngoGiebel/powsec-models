@@ -417,7 +417,7 @@ Output: `output/` directory with PNG visualizations and CSV data files.
 
 ### Miner Stress Parameters {.unnumbered}
 
-**Table 5: Miner Stress Model Parameters.** Input parameters for the miner capitulation and difficulty adjustment model, sourced from blockchain data and industry reports.
+Input parameters for the miner capitulation and difficulty adjustment model, sourced from blockchain data and industry reports.
 
 | Parameter | Value | Source |
 |---|---|---|
@@ -429,7 +429,7 @@ Output: `output/` directory with PNG visualizations and CSV data files.
 
 ### Content Pollution Parameters {.unnumbered}
 
-**Table 6: Content Pollution Model Parameters.** Parameters governing the inscription density, fee pushback, and flagging sensitivity components of the pollution sub-model.
+Parameters governing the inscription density, fee pushback, and flagging sensitivity components of the pollution sub-model.
 
 | Parameter | Value | Source |
 |---|---|---|
@@ -440,7 +440,7 @@ Output: `output/` directory with PNG visualizations and CSV data files.
 
 ### Hashrate Concentration Parameters {.unnumbered}
 
-**Table 7: Hashrate Concentration Model Parameters.** Data sources for mining pool shares, geographic distribution, and regulatory compliance estimates used in the decentralization assessment.
+Data sources for mining pool shares, geographic distribution, and regulatory compliance estimates used in the decentralization assessment.
 
 | Parameter | Value | Source |
 |---|---|---|
@@ -450,7 +450,7 @@ Output: `output/` directory with PNG visualizations and CSV data files.
 
 ### Institutional Exit Parameters {.unnumbered}
 
-**Table 8: Institutional Exit Cascade Parameters.** Calibration values for the market impact model governing ETF-driven selling cascades, including temporary and permanent price impact coefficients.
+Calibration values for the market impact model governing ETF-driven selling cascades, including temporary and permanent price impact coefficients.
 
 | Parameter | Value | Source |
 |---|---|---|
