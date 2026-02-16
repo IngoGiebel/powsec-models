@@ -81,63 +81,63 @@ def create_bitcoin_mining_flow():
 
     # === Main flow (top row) ===
     nodes = [
-        (1.2, 5.2, 1.6, 0.7, 'Transaction\nPool', BLUE_LIGHT, GRAY_DARK),
-        (3.3, 5.2, 1.6, 0.7, 'Block\nAssembly', BLUE_MED, WHITE),
-        (5.5, 5.2, 1.7, 0.7, 'Cryptographic\nPuzzle (PoW)', ORANGE, WHITE),
-        (7.6, 5.2, 1.4, 0.7, 'Valid\nBlock', GREEN, WHITE),
-        (9.2, 5.2, 1.2, 0.7, 'Chain\nExtension', BLUE_DARK, WHITE),
+        (1.0, 5.2, 1.4, 0.65, 'Transaction\nPool', BLUE_LIGHT, GRAY_DARK),
+        (2.9, 5.2, 1.4, 0.65, 'Block\nAssembly', BLUE_MED, WHITE),
+        (4.9, 5.2, 1.5, 0.65, 'Cryptographic\nPuzzle (PoW)', ORANGE, WHITE),
+        (6.9, 5.2, 1.2, 0.65, 'Valid\nBlock', GREEN, WHITE),
+        (8.5, 5.2, 1.2, 0.65, 'Chain\nExtension', BLUE_DARK, WHITE),
     ]
     for x, y, w, h, text, color, tc in nodes:
-        draw_box(ax, x, y, w, h, text, color=color, textcolor=tc, fontsize=8)
+        draw_box(ax, x, y, w, h, text, color=color, textcolor=tc, fontsize=7.5)
 
     # Arrows between main flow
-    arrow_pairs = [(2.0, 5.2, 2.5, 5.2), (4.1, 5.2, 4.65, 5.2),
-                   (6.35, 5.2, 6.9, 5.2), (8.3, 5.2, 8.6, 5.2)]
+    arrow_pairs = [(1.7, 5.2, 2.2, 5.2), (3.6, 5.2, 4.15, 5.2),
+                   (5.65, 5.2, 6.3, 5.2), (7.5, 5.2, 7.9, 5.2)]
     for x1, y1, x2, y2 in arrow_pairs:
         draw_arrow(ax, x1, y1, x2, y2, color=GRAY_DARK, lw=2)
 
     # === Reward mechanism (below main flow) ===
-    draw_box(ax, 5.5, 3.8, 2.4, 0.55, 'Block Reward: 3.125 BTC\n+ Transaction Fees',
-             color=GOLD, textcolor=GRAY_DARK, fontsize=7.5)
-    draw_box(ax, 8.5, 3.8, 1.3, 0.55, 'Miner\nRevenue', color=GREEN, textcolor=WHITE, fontsize=8)
-    draw_arrow(ax, 5.5, 4.85, 5.5, 4.08, color=GOLD, lw=1.5)
-    draw_arrow(ax, 6.7, 3.8, 7.85, 3.8, color=GOLD, lw=2)
+    draw_box(ax, 4.9, 3.8, 2.2, 0.55, 'Block Reward: 3.125 BTC\n+ Transaction Fees',
+             color=GOLD, textcolor=GRAY_DARK, fontsize=7)
+    draw_box(ax, 7.8, 3.8, 1.2, 0.55, 'Miner\nRevenue', color=GREEN, textcolor=WHITE, fontsize=7.5)
+    draw_arrow(ax, 4.9, 4.85, 4.9, 4.08, color=GOLD, lw=1.5)
+    draw_arrow(ax, 6.0, 3.8, 7.2, 3.8, color=GOLD, lw=2)
 
     # === Halving timeline (bottom left) ===
     ax.text(1.0, 2.7, 'Halving Schedule', ha='left', fontsize=10, fontweight='bold', color=GRAY_DARK)
     halvings = ['50 BTC', '25 BTC', '12.5 BTC', '6.25 BTC', '3.125 BTC']
     years = ['2009', '2012', '2016', '2020', '2024']
     for i, (h, yr) in enumerate(zip(halvings, years)):
-        x = 0.8 + i * 1.45
+        x = 0.7 + i * 1.3
         alpha = 0.4 + 0.15 * i
         color = BLUE_MED if i < 4 else GREEN
-        draw_box(ax, x, 2.0, 1.3, 0.5, h, color=color, textcolor=WHITE, fontsize=7.5, alpha=alpha if i < 4 else 1.0)
-        ax.text(x, 1.6, yr, ha='center', fontsize=7, color=GRAY)
+        draw_box(ax, x, 2.0, 1.15, 0.45, h, color=color, textcolor=WHITE, fontsize=7, alpha=alpha if i < 4 else 1.0)
+        ax.text(x, 1.6, yr, ha='center', fontsize=6.5, color=GRAY)
         if i < len(halvings) - 1:
-            draw_arrow(ax, x + 0.65, 2.0, x + 0.8, 2.0, color=GRAY, lw=1)
-    ax.text(3.7, 1.2, '÷2 every ~210,000 blocks (~4 years)', ha='center', fontsize=7.5,
+            draw_arrow(ax, x + 0.58, 2.0, x + 0.72, 2.0, color=GRAY, lw=1)
+    ax.text(3.3, 1.2, '÷2 every ~210,000 blocks (~4 years)', ha='center', fontsize=7,
             style='italic', color=GRAY)
 
     # === DAA feedback loop (bottom right) ===
-    ax.text(7.5, 2.7, 'Difficulty Adjustment (DAA)', ha='left', fontsize=10, fontweight='bold', color=GRAY_DARK)
+    ax.text(6.8, 2.7, 'Difficulty Adjustment (DAA)', ha='left', fontsize=10, fontweight='bold', color=GRAY_DARK)
 
-    draw_box(ax, 7.6, 2.0, 1.6, 0.5, 'Blocks too fast', color=RED_LIGHT, textcolor=WHITE, fontsize=7.5)
-    draw_box(ax, 9.4, 2.0, 1.0, 0.5, 'Diff ↑', color=RED, textcolor=WHITE, fontsize=8)
-    draw_arrow(ax, 8.4, 2.0, 8.9, 2.0, color=RED, lw=1.5)
+    draw_box(ax, 6.9, 2.0, 1.4, 0.45, 'Blocks too fast', color=RED_LIGHT, textcolor=WHITE, fontsize=7)
+    draw_box(ax, 8.6, 2.0, 0.9, 0.45, 'Diff ↑', color=RED, textcolor=WHITE, fontsize=7.5)
+    draw_arrow(ax, 7.6, 2.0, 8.15, 2.0, color=RED, lw=1.5)
 
-    draw_box(ax, 7.6, 1.2, 1.6, 0.5, 'Blocks too slow', color=GREEN_LIGHT, textcolor=GRAY_DARK, fontsize=7.5)
-    draw_box(ax, 9.4, 1.2, 1.0, 0.5, 'Diff ↓', color=GREEN, textcolor=WHITE, fontsize=8)
-    draw_arrow(ax, 8.4, 1.2, 8.9, 1.2, color=GREEN, lw=1.5)
+    draw_box(ax, 6.9, 1.2, 1.4, 0.45, 'Blocks too slow', color=GREEN_LIGHT, textcolor=GRAY_DARK, fontsize=7)
+    draw_box(ax, 8.6, 1.2, 0.9, 0.45, 'Diff ↓', color=GREEN, textcolor=WHITE, fontsize=7.5)
+    draw_arrow(ax, 7.6, 1.2, 8.15, 1.2, color=GREEN, lw=1.5)
 
-    ax.text(8.5, 0.7, 'Every 2,016 blocks (~2 weeks)', ha='center', fontsize=7.5,
+    ax.text(7.8, 0.7, 'Every 2,016 blocks (~2 weeks)', ha='center', fontsize=7,
             style='italic', color=GRAY)
 
     # Feedback arrow from DAA back to puzzle
-    draw_curved_arrow(ax, 9.4, 2.5, 5.5, 4.85, color=GRAY, lw=1.0, rad=-0.2, style='->')
-    ax.text(8.0, 3.45, 'adjusts\ntarget', ha='center', fontsize=6.5, color=GRAY, style='italic')
+    draw_curved_arrow(ax, 8.6, 2.45, 4.9, 4.85, color=GRAY, lw=1.0, rad=-0.2, style='->')
+    ax.text(7.3, 3.45, 'adjusts\ntarget', ha='center', fontsize=6.5, color=GRAY, style='italic')
 
     # Subtle border
-    rect = plt.Rectangle((0.15, 0.4), 9.7, 6.5, fill=False, edgecolor=GRAY_LIGHT, linewidth=1)
+    rect = plt.Rectangle((0.15, 0.4), 9.55, 6.5, fill=False, edgecolor=GRAY_LIGHT, linewidth=1)
     ax.add_patch(rect)
 
     plt.tight_layout()

@@ -133,8 +133,6 @@ where $d_t$ is the difficulty factor, $s_t$ is the network survival rate, and $\
 
 : Key model assumptions with justifications and confidence ratings. The weakest assumption—linear extrapolation from tracked to untracked miners—is flagged as questionable and subjected to sensitivity analysis. {#tbl-assumptions}
 
-: Miner stress model assumptions {#tbl-miner-assumptions}
-
 ### Blockchain Content Pollution {#sec-content-pollution}
 
 #### Model Description
