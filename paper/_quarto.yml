@@ -2,15 +2,12 @@ project:
   type: default
 
 format:
-  pdf:
+  arxiv-pdf:
     pdf-engine: xelatex
-    documentclass: article
+    keep-tex: true
     fontsize: 11pt
-    geometry:
-      - margin=1in
     include-in-header:
       - preamble.tex
-    number-sections: true
     colorlinks: true
     linkcolor: blue
     citecolor: blue
