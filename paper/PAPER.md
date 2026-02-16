@@ -19,18 +19,38 @@ We present a quantitative framework for assessing systemic risks in Bitcoin's Pr
 
 ## 1. Introduction
 
-### 1.1 Motivation
+### 1.1 Bitcoin in a Nutshell
 
-Bitcoin's security model fundamentally relies on the economic incentives of Proof-of-Work mining. While the theoretical foundations are well-established (Nakamoto, 2008), the practical security landscape has evolved significantly with the emergence of industrial-scale mining operations, Bitcoin ETFs holding >5% of circulating supply, and novel block space usage patterns such as Ordinals inscriptions.
+Bitcoin is a decentralized digital currency introduced by Nakamoto (2008) that operates without any central authority — no central bank, no clearinghouse, no single point of control. Instead, a global network of participants maintains a shared ledger (the *blockchain*) that records every transaction ever made. The system's core innovation is achieving consensus on who owns what without requiring trust in any intermediary.
 
-### 1.2 Research Questions
+**Proof-of-Work mining.** To add a new page (called a *block*) to this ledger, participants known as *miners* compete to solve a computationally intensive cryptographic puzzle. The puzzle itself is straightforward — find a number that, when hashed together with the block's contents, produces an output below a target threshold — but solving it requires enormous trial-and-error computation. The first miner to find a valid solution broadcasts the block to the network and receives a reward: newly minted bitcoins plus transaction fees paid by users. This process, repeated roughly every ten minutes, is what secures the network. An attacker seeking to alter the ledger would need to outpace the collective computational power (or *hashrate*) of all honest miners — a prohibitively expensive undertaking under normal conditions.
+
+**The halving and digital scarcity.** Bitcoin's total supply is capped at 21 million coins. The block reward — initially 50 BTC — is cut in half approximately every four years (every 210,000 blocks), an event known as the *halving*. As of April 2024, the reward stands at 3.125 BTC per block. This programmatic scarcity schedule means that over time, transaction fees must increasingly compensate miners as block rewards diminish, a transition whose economic implications are central to this paper.
+
+**What the blockchain stores.** While originally designed for financial transactions, Bitcoin's blockchain has increasingly become a medium for arbitrary data storage. The *Ordinals* protocol, introduced in 2023, enables users to inscribe images, text, and other media directly into the blockchain by embedding data in transaction witness fields. Combined with the existing `OP_RETURN` mechanism for storing small data payloads, this has transformed parts of the blockchain into a permanent, uncensorable data repository — raising novel compliance concerns for institutional holders (Wendl et al., 2025).
+
+**Mining pools.** Because the probability of any individual miner solving a block is vanishingly small, miners organize into *pools* that combine their hashrate and share rewards proportionally. While pools improve income predictability for participants, they introduce a layer of centralization: a small number of pool operators coordinate the construction of blocks on behalf of thousands of individual miners. This distinction between pool-level and miner-level control is critical for assessing censorship resistance (Cong, He & Li, 2021).
+
+**The Difficulty Adjustment Algorithm (DAA).** To maintain a consistent block production rate of approximately one block every ten minutes regardless of how much computational power joins or leaves the network, Bitcoin employs an automatic difficulty adjustment. Every 2,016 blocks (roughly two weeks), the protocol recalculates the puzzle difficulty based on actual block production speed. If miners are finding blocks too quickly (indicating increased hashrate), difficulty rises; if too slowly (indicating hashrate has departed), difficulty falls. This negative feedback loop is a crucial stabilization mechanism that we model explicitly in our miner capitulation analysis.
+
+**Institutional adoption and ETFs.** Bitcoin has undergone rapid institutionalization since the approval of spot Bitcoin exchange-traded funds (ETFs) in the United States in January 2024. Major asset managers — including BlackRock (iShares Bitcoin Trust), Fidelity (Wise Origin Bitcoin Fund), and others — now hold bitcoin on behalf of traditional investors through regulated vehicles. These ETFs collectively hold over 5% of Bitcoin's circulating supply, creating a new class of stakeholder whose compliance requirements and fiduciary obligations introduce systemic risks not present in Bitcoin's original design.
+
+**Block space as a scarce resource.** Each Bitcoin block is limited to approximately 4 MB of data (measured in *weight units* since the SegWit upgrade). This fixed capacity creates a fee market in which users bid for inclusion in the next block, with miners rationally selecting the highest-fee transactions. During periods of high demand, this auction mechanism can price out low-value transactions — including many Ordinals inscriptions — providing an endogenous regulatory mechanism for block space usage (Easley, O'Hara & Basu, 2019; Carter & Jeng, 2023).
+
+### 1.2 Motivation
+
+Bitcoin's security model fundamentally relies on the economic incentives of Proof-of-Work mining. While the theoretical foundations are well-established (Nakamoto, 2008), the practical security landscape has evolved significantly with the emergence of industrial-scale mining operations, Bitcoin ETFs holding >5% of circulating supply, and novel block space usage patterns such as Ordinals inscriptions. The interplay between these developments — miner economics under halving pressure, concentration of hashrate in a handful of pools, blockchain content that may trigger institutional compliance concerns, and the systemic weight of ETF holders — creates a web of interconnected risks that no single prior study has modeled jointly.
+
+This paper provides a unified quantitative framework for assessing these risks, combining miner stress testing, content pollution modeling, hashrate concentration analysis, and institutional exit cascade simulation into a coherent risk assessment.
+
+### 1.3 Research Questions
 
 1. At what BTC price levels do major publicly traded miners face capitulation, and how does the Difficulty Adjustment Algorithm (DAA) stabilize the network during hash rate decline?
 2. How rapidly is blockchain content pollution reaching institutional concern thresholds, and how do fee-market dynamics self-regulate?
 3. What is the true censorship resistance of the Bitcoin network given current hashrate concentration?
 4. Could compliance-driven institutional exits create self-reinforcing price cascades, and what is the realistic market impact under optimal execution?
 
-### 1.3 Contributions
+### 1.4 Contributions
 
 - Four open-source Python models with reproducible simulations
 - Quantitative estimates for miner breakeven prices using real financial data with corrected overhead calculations
