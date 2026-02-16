@@ -208,7 +208,7 @@ Each exit event reduces BTC price through the Almgren-Chriss impact model. The r
 
 **Key Finding (with DAA):** Under the DAA feedback model, miner capitulation is partially self-correcting. As weak miners exit, difficulty drops, improving profitability for survivors. The network stabilizes at a lower but sustainable hashrate level, consistent with Prat & Walter (2021).
 
-![Figure 1: Miner capitulation stress test under price decline scenarios with DAA feedback](output/stress_test.png)
+![Figure 1: Miner capitulation stress test under price decline scenarios with DAA feedback](../output/stress_test.png)
 
 ### 4.2 Content Pollution
 
@@ -218,7 +218,7 @@ Each exit event reduces BTC price through the Almgren-Chriss impact model. The r
 
 **Key Finding:** The fee auction mechanism provides meaningful self-regulation of block space pollution. As inscriptions fill blocks and push fees up, low-value inscriptions are priced out, creating an endogenous ceiling well below 100%.
 
-![Figure 2: Content pollution probability and saturation curve with fee-market dampening](output/content_pollution.png)
+![Figure 2: Content pollution probability and saturation curve with fee-market dampening](../output/content_pollution.png)
 
 ### 4.3 Hashrate Concentration
 
@@ -232,7 +232,7 @@ Each exit event reduces BTC price through the Almgren-Chriss impact model. The r
 
 **Key Finding:** Only 3 entities (DCG/Foundry 30%, Bitmain/AntPool 18%, F2Pool 12%) control >50% of hashrate. However, this overstates censorship risk: Stratum V2 adoption and pool-hopping dynamics provide additional resilience not captured by static pool-share analysis (Vernetti, 2023; Cong, He & Li, 2021).
 
-![Figure 3: Hashrate concentration and censorship resistance metrics](output/hashrate_concentration.png)
+![Figure 3: Hashrate concentration and censorship resistance metrics](../output/hashrate_concentration.png)
 
 ### 4.4 Institutional Exit Cascade (Hypothetical Extreme Stress Scenario)
 
@@ -244,7 +244,7 @@ Under the Almgren-Chriss impact model, the cascade dynamics differ significantly
 
 **Key Finding:** A complete institutional exit cascade produces a smaller but more credibly modeled price impact than the pre-revision estimate. The separation of temporary and permanent impact reveals that orderly liquidation significantly reduces market disruption.
 
-![Figure 4: Institutional exit cascade simulation with Almgren-Chriss market impact](output/institutional_exit.png)
+![Figure 4: Institutional exit cascade simulation with Almgren-Chriss market impact](../output/institutional_exit.png)
 
 ---
 
