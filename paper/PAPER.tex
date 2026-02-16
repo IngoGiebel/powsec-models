@@ -118,6 +118,29 @@
 \makeatletter
 \def\fps@figure{htbp}
 \makeatother
+\newlength{\cslhangindent}
+\setlength{\cslhangindent}{1.5em}
+\newlength{\csllabelwidth}
+\setlength{\csllabelwidth}{3em}
+\newlength{\cslentryspacingunit} % times entry-spacing
+\setlength{\cslentryspacingunit}{\parskip}
+\newenvironment{CSLReferences}[2] % #1 hanging-ident, #2 entry spacing
+ {% don't indent paragraphs
+  \setlength{\parindent}{0pt}
+  % turn on hanging indent if param 1 is 1
+  \ifodd #1
+  \let\oldpar\par
+  \def\par{\hangindent=\cslhangindent\oldpar}
+  \fi
+  % set entry spacing
+  \setlength{\parskip}{#2\cslentryspacingunit}
+ }%
+ {}
+\usepackage{calc}
+\newcommand{\CSLBlock}[1]{#1\hfill\break}
+\newcommand{\CSLLeftMargin}[1]{\parbox[t]{\csllabelwidth}{#1}}
+\newcommand{\CSLRightInline}[1]{\parbox[t]{\linewidth - \csllabelwidth}{#1}\break}
+\newcommand{\CSLIndent}[1]{\hspace{\cslhangindent}#1}
 
 \usepackage{booktabs}
 \usepackage{longtable}
@@ -192,6 +215,11 @@
 \urlstyle{same} % disable monospaced font for URLs
 \hypersetup{
   pdftitle={Quantitative Risk Assessment of Bitcoin's Proof-of-Work Security Model},
+  pdfauthor={Ingo Giebel},
+  pdfkeywords={Bitcoin, Proof-of-Work, mining economics, hashrate
+concentration, censorship resistance, institutional risk, content
+pollution, Ordinals, ETF compliance, Almgren-Chriss, difficulty
+adjustment},
   colorlinks=true,
   linkcolor={blue},
   filecolor={Maroon},
@@ -199,31 +227,17 @@
   urlcolor={blue},
   pdfcreator={LaTeX via pandoc}}
 
+\renewcommand{\today}{2026-02-01}
 \newcommand{\runninghead}{A Preprint }
 \title{Quantitative Risk Assessment of Bitcoin's Proof-of-Work Security
 Model}
 \def\asep{\\\\\\ } % default: all authors on same column
-\author{}
-\date{}
+\author{\textbf{Ingo
+Giebel}~\orcidlink{0009-0005-4238-000X}\\\\Independent Researcher\\\\}
+\date{2026-02-01}
 \begin{document}
 \maketitle
-\ifdefined\Shaded\renewenvironment{Shaded}{\begin{tcolorbox}[sharp corners, frame hidden, borderline west={3pt}{0pt}{shadecolor}, interior hidden, breakable, boxrule=0pt, enhanced]}{\end{tcolorbox}}\fi
-
-\textbf{Authors:} Ingo Giebel, with AI-assisted analysis by Dione 🌙 \&
-Inanna ⚔️\\
-\textbf{Affiliation:} Independent Researcher\\
-\textbf{ORCID:}
-\href{https://orcid.org/0009-0005-4238-000X}{0009-0005-4238-000X}\\
-\textbf{Date:} February 2026\\
-\textbf{Repository:}
-\href{https://github.com/IngoGiebel/powsec-models}{github.com/IngoGiebel/powsec-models}\\
-\textbf{License:} MIT
-
-\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
-
-\hypertarget{abstract}{%
-\section{Abstract}\label{abstract}}
-
+\begin{abstract}
 We present a quantitative framework for assessing systemic risks in
 Bitcoin's Proof-of-Work (PoW) security model through four interconnected
 simulation models. Our analysis examines (1) miner capitulation dynamics
@@ -243,16 +257,32 @@ vulnerability of pure-play BTC miners. These findings suggest that
 Bitcoin's security guarantees may be more fragile than commonly assumed,
 though endogenous stabilization mechanisms (difficulty adjustment, fee
 markets) provide meaningful resilience.
+\end{abstract}
+{\bfseries \emph Keywords}
+\def\sep{\textbullet\ }
+Bitcoin \sep Proof-of-Work \sep mining economics \sep hashrate
+concentration \sep censorship resistance \sep institutional
+risk \sep content pollution \sep Ordinals \sep ETF
+compliance \sep Almgren-Chriss \sep 
+difficulty adjustment
 
-\textbf{Keywords:} Bitcoin, Proof-of-Work, mining economics, hashrate
-concentration, censorship resistance, institutional risk, content
-pollution, Ordinals, ETF compliance, Almgren-Chriss, difficulty
-adjustment
+\ifdefined\Shaded\renewenvironment{Shaded}{\begin{tcolorbox}[borderline west={3pt}{0pt}{shadecolor}, sharp corners, breakable, interior hidden, boxrule=0pt, frame hidden, enhanced]}{\end{tcolorbox}}\fi
+
+\textbf{Repository:}
+\href{https://github.com/IngoGiebel/powsec-models}{github.com/IngoGiebel/powsec-models}\\
+\textbf{License:} MIT
 
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
 \hypertarget{introduction}{%
 \section{1. Introduction}\label{introduction}}
+
+This paper presents a unified quantitative framework for assessing four
+interconnected risks to Bitcoin's Proof-of-Work security model: miner
+capitulation under price stress, blockchain content pollution, hashrate
+concentration, and institutional exit cascades. We begin with an
+overview of Bitcoin's core mechanisms before motivating our research
+questions and contributions.
 
 \hypertarget{bitcoin-in-a-nutshell}{%
 \subsection{1.1 Bitcoin in a Nutshell}\label{bitcoin-in-a-nutshell}}
@@ -277,7 +307,8 @@ users. This process, repeated roughly every ten minutes, is what secures
 the network. An attacker seeking to alter the ledger would need to
 outpace the collective computational power (or \emph{hashrate}) of all
 honest miners --- a prohibitively expensive undertaking under normal
-conditions.
+conditions. Figure~\ref{fig-mining-flow} illustrates this operational
+cycle in detail.
 
 \textbf{The halving and digital scarcity.} Bitcoin's total supply is
 capped at 21 million coins. The block reward --- initially 50 BTC --- is
@@ -296,8 +327,7 @@ media directly into the blockchain by embedding data in transaction
 witness fields. Combined with the existing \texttt{OP\_RETURN} mechanism
 for storing small data payloads, this has transformed parts of the
 blockchain into a permanent, uncensorable data repository --- raising
-novel compliance concerns for institutional holders (Wendl et al.,
-2025).
+novel compliance concerns for institutional holders (Wendl et al. 2025).
 
 \textbf{Mining pools.} Because the probability of any individual miner
 solving a block is vanishingly small, miners organize into \emph{pools}
@@ -306,7 +336,7 @@ pools improve income predictability for participants, they introduce a
 layer of centralization: a small number of pool operators coordinate the
 construction of blocks on behalf of thousands of individual miners. This
 distinction between pool-level and miner-level control is critical for
-assessing censorship resistance (Cong, He \& Li, 2021).
+assessing censorship resistance (Cong, He, and Li 2021).
 
 \textbf{The Difficulty Adjustment Algorithm (DAA).} To maintain a
 consistent block production rate of approximately one block every ten
@@ -337,14 +367,16 @@ next block, with miners rationally selecting the highest-fee
 transactions. During periods of high demand, this auction mechanism can
 price out low-value transactions --- including many Ordinals
 inscriptions --- providing an endogenous regulatory mechanism for block
-space usage (Easley, O'Hara \& Basu, 2019; Carter \& Jeng, 2023).
+space usage (Easley, O'Hara, and Basu 2019; Carter and Jeng 2023). The
+fee-market thermostat mechanism is depicted in
+Figure~\ref{fig-fee-thermostat}.
 
 \hypertarget{motivation}{%
 \subsection{1.2 Motivation}\label{motivation}}
 
 Bitcoin's security model fundamentally relies on the economic incentives
 of Proof-of-Work mining. While the theoretical foundations are
-well-established (Nakamoto, 2008), the practical security landscape has
+well-established (Nakamoto 2008), the practical security landscape has
 evolved significantly with the emergence of industrial-scale mining
 operations, Bitcoin ETFs holding \textgreater5\% of circulating supply,
 and novel block space usage patterns such as Ordinals inscriptions. The
@@ -352,7 +384,9 @@ interplay between these developments --- miner economics under halving
 pressure, concentration of hashrate in a handful of pools, blockchain
 content that may trigger institutional compliance concerns, and the
 systemic weight of ETF holders --- creates a web of interconnected risks
-that no single prior study has modeled jointly.
+that no single prior study has modeled jointly (see
+Figure~\ref{fig-risk-map} for an overview of these risk vectors and
+their feedback relationships).
 
 This paper provides a unified quantitative framework for assessing these
 risks, combining miner stress testing, content pollution modeling,
@@ -408,20 +442,20 @@ simulation into a coherent risk assessment.
 
 }
 
-\caption{Figure 5: Bitcoin Proof-of-Work mining process flow. The
-diagram illustrates the core operational cycle: unconfirmed transactions
-are selected from the mempool during block assembly, miners compete to
-solve a cryptographic puzzle (PoW), and the first valid solution extends
-the blockchain. The successful miner receives the block reward
-(currently 3.125 BTC after the April 2024 halving) plus accumulated
-transaction fees. The lower-left panel shows the halving schedule ---
-the block reward is cut in half approximately every 210,000 blocks
-(\textasciitilde4 years), from the initial 50 BTC in 2009 to the current
-3.125 BTC. The lower-right panel depicts the Difficulty Adjustment
-Algorithm (DAA), which recalibrates the puzzle difficulty every 2,016
-blocks to maintain the target 10-minute block interval, forming a
-negative feedback loop that stabilizes the network regardless of
-hashrate fluctuations.}
+\caption{\label{fig-mining-flow}Bitcoin Proof-of-Work mining process
+flow. The diagram illustrates the core operational cycle: unconfirmed
+transactions are selected from the mempool during block assembly, miners
+compete to solve a cryptographic puzzle (PoW), and the first valid
+solution extends the blockchain. The successful miner receives the block
+reward (currently 3.125 BTC after the April 2024 halving) plus
+accumulated transaction fees. The lower-left panel shows the halving
+schedule --- the block reward is cut in half approximately every 210,000
+blocks (\textasciitilde4 years), from the initial 50 BTC in 2009 to the
+current 3.125 BTC. The lower-right panel depicts the Difficulty
+Adjustment Algorithm (DAA), which recalibrates the puzzle difficulty
+every 2,016 blocks to maintain the target 10-minute block interval,
+forming a negative feedback loop that stabilizes the network regardless
+of hashrate fluctuations.}
 
 \end{figure}
 
@@ -431,20 +465,20 @@ hashrate fluctuations.}
 
 }
 
-\caption{Figure 6: Interconnected risk vector map showing the four
-systemic risks analyzed in this paper and their feedback relationships.
-The four primary risk vectors --- Miner Capitulation, Content Pollution,
-Hashrate Concentration, and Institutional Exit --- are arranged in a
-diamond topology around a central systemic risk node, emphasizing their
-interdependence. Red arrows indicate destabilizing feedback loops: price
-declines trigger miner exits that increase hashrate concentration, while
-content pollution triggers compliance concerns that drive institutional
-exits, further depressing prices. Green arrows indicate stabilizing
-feedback loops: the Difficulty Adjustment Algorithm lowers the breakeven
-cost as miners exit, and rising transaction fees from block congestion
-push back against low-value inscriptions. The coexistence of both
-destabilizing and stabilizing mechanisms is a central theme of this
-paper's analysis.}
+\caption{\label{fig-risk-map}Interconnected risk vector map showing the
+four systemic risks analyzed in this paper and their feedback
+relationships. The four primary risk vectors --- Miner Capitulation,
+Content Pollution, Hashrate Concentration, and Institutional Exit ---
+are arranged in a diamond topology around a central systemic risk node,
+emphasizing their interdependence. Red arrows indicate destabilizing
+feedback loops: price declines trigger miner exits that increase
+hashrate concentration, while content pollution triggers compliance
+concerns that drive institutional exits, further depressing prices.
+Green arrows indicate stabilizing feedback loops: the Difficulty
+Adjustment Algorithm lowers the breakeven cost as miners exit, and
+rising transaction fees from block congestion push back against
+low-value inscriptions. The coexistence of both destabilizing and
+stabilizing mechanisms is a central theme of this paper's analysis.}
 
 \end{figure}
 
@@ -454,12 +488,12 @@ paper's analysis.}
 
 }
 
-\caption{Figure 7: Fee-market thermostat mechanism illustrating
-Bitcoin's endogenous self-regulation of block space pollution. The
-upper-left panel shows the cyclic feedback process: as Ordinals
-inscriptions fill blocks, transaction fees rise, pricing out low-value
-inscriptions and restoring equilibrium at approximately 40\% saturation.
-The upper-right inset plots the fee-pushback function
+\caption{\label{fig-fee-thermostat}Fee-market thermostat mechanism
+illustrating Bitcoin's endogenous self-regulation of block space
+pollution. The upper-left panel shows the cyclic feedback process: as
+Ordinals inscriptions fill blocks, transaction fees rise, pricing out
+low-value inscriptions and restoring equilibrium at approximately 40\%
+saturation. The upper-right inset plots the fee-pushback function
 \(f_{\text{pushback}} = 1/(1 + (f/f_0)^2)\), which quantifies how the
 dampening factor decays as average fee rates increase beyond the
 reference level \(f_0\). The lower-right panel shows the equilibrium
@@ -478,16 +512,20 @@ Bitcoin's fixed 4-million weight-unit block capacity.}
 \hypertarget{related-work}{%
 \section{2. Related Work}\label{related-work}}
 
+This section reviews the four bodies of literature most relevant to our
+analysis: mining economics, network concentration, content pollution,
+and market microstructure.
+
 \hypertarget{mining-economics-difficulty-adjustment}{%
 \subsection{2.1 Mining Economics \& Difficulty
 Adjustment}\label{mining-economics-difficulty-adjustment}}
 
 Nakamoto (2008) established the foundational incentive structure for PoW
 mining, where miners expend computational resources in exchange for
-block rewards and transaction fees. Prat \& Walter (2021) developed a
+block rewards and transaction fees. Prat and Walter (2021) developed a
 dynamic equilibrium model of Bitcoin mining that endogenizes the
 relationship between price, hashrate, and difficulty --- a feedback loop
-we incorporate in our miner stress simulation. Easley, O'Hara \& Basu
+we incorporate in our miner stress simulation. Easley, O'Hara, and Basu
 (2019) analyzed the role of transaction fees in miner incentive
 compatibility, showing that fees serve as a price-discovery mechanism
 for block space --- a finding central to our fee-market dampening of
@@ -497,12 +535,12 @@ content pollution.
 \subsection{2.2 Network Concentration \&
 Censorship}\label{network-concentration-censorship}}
 
-Gencer et al.~(2018) provided the first rigorous measurement of
+Gencer et al. (2018) provided the first rigorous measurement of
 decentralization in Bitcoin and Ethereum, establishing the Nakamoto
-Coefficient methodology we employ. Cong, He \& Li (2021) analyzed the
+Coefficient methodology we employ. Cong, He, and Li (2021) analyzed the
 tension between decentralized mining and centralized pool operation,
 showing how pool concentration can undermine network security even when
-individual miners are distributed. Judmayer et al.~(2021) estimated the
+individual miners are distributed. Judmayer et al. (2021) estimated the
 cost of 51\% attacks, providing calibration data for our censorship cost
 model. Vernetti (2023) documented the Stratum V2 protocol, which allows
 miners to construct their own block templates --- a significant nuance
@@ -513,8 +551,8 @@ analysis.
 \subsection{2.3 Content Pollution \& Block Space
 Economics}\label{content-pollution-block-space-economics}}
 
-Wendl et al.~(2025) provided the first systematic analysis of Bitcoin
-Ordinals and their impact on block space economics. Carter \& Jeng
+Wendl et al. (2025) provided the first systematic analysis of Bitcoin
+Ordinals and their impact on block space economics. Carter and Jeng
 (2023) analyzed the fee-market dynamics of Ordinals, showing that
 inscription demand competes with financial transactions through the fee
 auction mechanism --- the key insight behind our fee-pushback factor.
@@ -523,12 +561,12 @@ auction mechanism --- the key insight behind our fee-pushback factor.
 \subsection{2.4 Market Microstructure \& Institutional
 Adoption}\label{market-microstructure-institutional-adoption}}
 
-Almgren \& Chriss (2001) developed the foundational model for optimal
+Almgren and Chriss (2001) developed the foundational model for optimal
 execution of large portfolio transactions, separating temporary
 (transient) from permanent (structural) market impact. We adapt their
-framework for Bitcoin's thinner markets. Makarov \& Schoar (2020)
+framework for Bitcoin's thinner markets. Makarov and Schoar (2020)
 documented inefficiencies and arbitrage in cryptocurrency trading that
-affect market impact propagation. Chen et al.~(2025) analyzed the impact
+affect market impact propagation. Chen et al. (2025) analyzed the impact
 of Bitcoin ETFs on futures markets, providing empirical grounding for
 our institutional exit cascade model.
 
@@ -536,6 +574,10 @@ our institutional exit cascade model.
 
 \hypertarget{methodology}{%
 \section{3. Methodology}\label{methodology}}
+
+This section details the four simulation models that comprise our
+framework. Each subsection describes the model mechanics, data sources,
+and key assumptions.
 
 \hypertarget{miner-capitulation-stress-test-miner_stress.py}{%
 \subsection{\texorpdfstring{3.1 Miner Capitulation Stress Test
@@ -577,13 +619,15 @@ A critical innovation over static analysis: when miners capitulate,
 network hashrate drops, causing the DAA to reduce difficulty
 (approximately every 2016 blocks ≈ 14 days). This lowers breakeven costs
 for surviving miners, creating a stabilizing negative feedback loop
-(Prat \& Walter, 2021). Our simulation models this as a smoothed partial
+(Prat and Walter 2021). Our simulation models this as a smoothed partial
 adjustment:
 
 \[d_{t+1} = (1-\alpha) \cdot d_t + \alpha \cdot s_t\]
 
 where \(d_t\) is the difficulty factor, \(s_t\) is the network survival
-rate, and \(\alpha = 0.3\) is the adjustment speed parameter.
+rate, and \(\alpha = 0.3\) is the adjustment speed parameter. The
+results of the stress test under this model are shown in
+Figure~\ref{fig-stress-test}.
 
 \hypertarget{data-sources}{%
 \subsubsection{3.1.3 Data Sources}\label{data-sources}}
@@ -663,10 +707,13 @@ factors are combined:
   \textasciitilde0.20)
 \end{enumerate}
 
+The resulting pollution dynamics are visualized in
+Figure~\ref{fig-content-pollution}.
+
 \hypertarget{fee-market-dampening}{%
 \subsubsection{3.2.2 Fee-Market Dampening}\label{fee-market-dampening}}
 
-Following Easley, O'Hara \& Basu (2019) and Carter \& Jeng (2023), we
+Following Easley, O'Hara, and Basu (2019) and Carter and Jeng (2023), we
 model block space as an auction where financial transactions outbid
 low-value inscriptions at high fee levels:
 
@@ -713,6 +760,9 @@ where \(h_i\) is regional hashrate share, \(r_i\) is regulatory risk
 score, and \(N\) is the number of regions. Both terms are bounded in
 {[}0, 1{]}, ensuring \(R_{\text{geo}} \in [0, 1]\).
 
+The full concentration analysis results are presented in
+Figure~\ref{fig-hashrate}.
+
 \begin{itemize}
 \tightlist
 \item
@@ -729,7 +779,7 @@ score, and \(N\) is the number of regions. Both terms are bounded in
 \begin{itemize}
 \tightlist
 \item
-  Pool hashrate ≠ censorship power: Stratum V2 (Vernetti, 2023) allows
+  Pool hashrate ≠ censorship power: Stratum V2 (Vernetti 2023) allows
   miners to build their own block templates, reducing pool operators'
   ability to censor
 \item
@@ -754,12 +804,13 @@ compliance thresholds. While we consider a full-scale coordinated
 institutional exit unlikely under normal market conditions, modeling the
 worst case provides an upper bound on systemic risk. Each institutional
 holder has a compliance strictness parameter and pollution threshold.
+The simulation results are shown in Figure~\ref{fig-institutional-exit}.
 
 \hypertarget{market-impact-model-almgren-chriss}{%
 \subsubsection{3.4.2 Market Impact Model
 (Almgren-Chriss)}\label{market-impact-model-almgren-chriss}}
 
-Following Almgren \& Chriss (2001), we decompose market impact into:
+Following Almgren and Chriss (2001), we decompose market impact into:
 
 \begin{itemize}
 \tightlist
@@ -790,13 +841,13 @@ frontier between execution cost and timing risk.
 \textbf{Calibration:} \(\eta = 0.10\) and \(\gamma = 0.05\) are
 calibrated to produce approximately 3-5\% total impact for selling
 100,000 BTC over 30-90 days at \$30B daily volume, consistent with
-empirical estimates from Makarov \& Schoar (2020) and the broader market
-microstructure literature on illiquidity premia (Amihud, 2002) and price
-impact modeling (Bouchaud et al., 2008). Note that \$30B daily volume
-reflects normal market conditions; Makarov \& Schoar (2020) document
-that liquidity can evaporate during systemic stress, with effective
-market depth dropping by 50-80\%, substantially amplifying realized
-impact.
+empirical estimates from Makarov and Schoar (2020) and the broader
+market microstructure literature on illiquidity premia (Amihud 2002) and
+price impact modeling (Bouchaud, Farmer, and Lillo 2008). Note that
+\$30B daily volume reflects normal market conditions; Makarov and Schoar
+(2020) document that liquidity can evaporate during systemic stress,
+with effective market depth dropping by 50-80\%, substantially
+amplifying realized impact.
 
 \hypertarget{cascade-dynamics}{%
 \subsubsection{3.4.3 Cascade Dynamics}\label{cascade-dynamics}}
@@ -810,6 +861,9 @@ creating a positive feedback loop.
 
 \hypertarget{results}{%
 \section{4. Results}\label{results}}
+
+We now present the output of each simulation model, followed by
+cross-model implications.
 
 \hypertarget{miner-capitulation}{%
 \subsection{4.1 Miner Capitulation}\label{miner-capitulation}}
@@ -845,7 +899,7 @@ factor.}
 capitulation is partially self-correcting. As weak miners exit,
 difficulty drops, improving profitability for survivors. The network
 stabilizes at a lower but sustainable hashrate level, consistent with
-Prat \& Walter (2021).
+Prat and Walter (2021).
 
 \begin{figure}
 
@@ -853,13 +907,13 @@ Prat \& Walter (2021).
 
 }
 
-\caption{Figure 1: Miner capitulation stress test under price decline
-scenarios with DAA feedback. The upper panel plots per-miner
-capitulation probability (0--100\%) against BTC price (\$20K--\$100K)
-for six publicly traded miners (WULF, CIFR, CORZ, MARA, RIOT, CLSK),
-showing logistic curves that decline as price increases, with CIFR and
-MARA exhibiting the highest vulnerability across most of the price
-range. The lower panel displays the aggregate network security
+\caption{\label{fig-stress-test}Miner capitulation stress test under
+price decline scenarios with DAA feedback. The upper panel plots
+per-miner capitulation probability (0--100\%) against BTC price
+(\$20K--\$100K) for six publicly traded miners (WULF, CIFR, CORZ, MARA,
+RIOT, CLSK), showing logistic curves that decline as price increases,
+with CIFR and MARA exhibiting the highest vulnerability across most of
+the price range. The lower panel displays the aggregate network security
 degradation score under the same price sweep, comparing a static model
 (no DAA) against the DAA-feedback model that reduces difficulty as
 miners exit. The DAA-feedback curve demonstrates substantially lower
@@ -895,18 +949,18 @@ endogenous ceiling well below 100\%.
 
 }
 
-\caption{Figure 2: Content pollution probability and saturation curve
-with fee-market dampening. The figure comprises four subplots:
-(top-left) observed toxic block probability over time with a logistic
-saturation fit converging to a 39.7\% asymptote, showing rapid growth
-after late 2022 that plateaus by mid-2023; (top-right) inscription
-density per block over time, with bars rising from near-zero pre-2023 to
-peaks exceeding 100 inscriptions per block; (bottom-left) the fee-market
-pushback multiplier as a function of average fee rate, illustrating how
-the dampening factor approaches zero at high fee levels and thereby
-suppresses low-value inscriptions; (bottom-right) the composite
-pollution score decomposed by weighted factor contributions. The
-saturation well below 100\% confirms that the fee-auction mechanism
+\caption{\label{fig-content-pollution}Content pollution probability and
+saturation curve with fee-market dampening. The figure comprises four
+subplots: (top-left) observed toxic block probability over time with a
+logistic saturation fit converging to a 39.7\% asymptote, showing rapid
+growth after late 2022 that plateaus by mid-2023; (top-right)
+inscription density per block over time, with bars rising from near-zero
+pre-2023 to peaks exceeding 100 inscriptions per block; (bottom-left)
+the fee-market pushback multiplier as a function of average fee rate,
+illustrating how the dampening factor approaches zero at high fee levels
+and thereby suppresses low-value inscriptions; (bottom-right) the
+composite pollution score decomposed by weighted factor contributions.
+The saturation well below 100\% confirms that the fee-auction mechanism
 provides an endogenous ceiling on content pollution, as modeled in
 Section 3.2.2.}
 
@@ -940,7 +994,7 @@ nation-states \\
 18\%, F2Pool 12\%) control \textgreater50\% of hashrate. However, this
 overstates censorship risk: Stratum V2 adoption and pool-hopping
 dynamics provide additional resilience not captured by static pool-share
-analysis (Vernetti, 2023; Cong, He \& Li, 2021).
+analysis (Vernetti 2023; Cong, He, and Li 2021).
 
 \begin{figure}
 
@@ -948,13 +1002,13 @@ analysis (Vernetti, 2023; Cong, He \& Li, 2021).
 
 }
 
-\caption{Figure 3: Hashrate concentration and censorship resistance
-metrics. The figure contains four panels: (top-left) a pie chart of
-mining pool hashrate distribution showing Foundry USA at 30\%, AntPool
-at 18\%, and F2Pool at 12\%, visually demonstrating that three entities
-control a majority of network hashrate; (top-right) a horizontal bar
-chart of geographic hashrate distribution color-coded by regulatory
-risk, with the United States (\textasciitilde38\%) and China
+\caption{\label{fig-hashrate}Hashrate concentration and censorship
+resistance metrics. The figure contains four panels: (top-left) a pie
+chart of mining pool hashrate distribution showing Foundry USA at 30\%,
+AntPool at 18\%, and F2Pool at 12\%, visually demonstrating that three
+entities control a majority of network hashrate; (top-right) a
+horizontal bar chart of geographic hashrate distribution color-coded by
+regulatory risk, with the United States (\textasciitilde38\%) and China
 (\textasciitilde22\%) dominating; (bottom-left) a summary dashboard of
 key metrics including the Nakamoto Coefficient of 3, HHI of 1,612, and a
 censorship resistance score of \textasciitilde49/100; (bottom-right)
@@ -998,9 +1052,9 @@ orderly liquidation significantly reduces market disruption.
 
 }
 
-\caption{Figure 4: Institutional exit cascade simulation with
-Almgren-Chriss market impact. The figure presents four panels:
-(top-left) a horizontal bar chart of BTC holdings by ETF issuer
+\caption{\label{fig-institutional-exit}Institutional exit cascade
+simulation with Almgren-Chriss market impact. The figure presents four
+panels: (top-left) a horizontal bar chart of BTC holdings by ETF issuer
 color-coded by compliance trigger probability, with IBIT
 (\textasciitilde570K BTC) holding the largest position at lower trigger
 risk while smaller funds like BTCE face higher trigger probabilities;
@@ -1115,8 +1169,8 @@ pushback → reduced pollution
   all four modules is left for future work.
 \item
   \textbf{Pool hashrate ≠ censorship power}: Stratum V2 and pool-hopping
-  dynamics significantly complicate censorship analysis (Vernetti, 2023;
-  Cong, He \& Li, 2021).
+  dynamics significantly complicate censorship analysis (Vernetti 2023;
+  Cong, He, and Li 2021).
 \item
   \textbf{ETF compliance triggers are speculative}: The pollution
   thresholds and compliance strictness parameters are estimated, not
@@ -1127,8 +1181,8 @@ pushback → reduced pollution
   \textbf{Market impact calibration}: The Almgren-Chriss parameters (η,
   γ) are calibrated to rough empirical estimates. BTC-specific market
   microstructure research, including time-varying market efficiency
-  analysis (Noda, 2020), would improve precision. Additionally, daily
-  trading volume is assumed constant at \$30B, but Makarov \& Schoar
+  analysis (Noda 2020), would improve precision. Additionally, daily
+  trading volume is assumed constant at \$30B, but Makarov and Schoar
   (2020) show that volume and market depth shrink substantially during
   systemic crashes --- precisely when institutional exits would occur
   --- amplifying realized market impact beyond our baseline estimates.
@@ -1273,82 +1327,102 @@ research.
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
 \hypertarget{references}{%
-\section{References}\label{references}}
+\section*{References}\label{references}}
+\addcontentsline{toc}{section}{References}
 
-\begin{enumerate}
-\def\labelenumi{\arabic{enumi}.}
-\item
-  Almgren, R. \& Chriss, N. (2001). Optimal execution of portfolio
-  transactions. \emph{Journal of Risk}, 3(2), 5--39.
-\item
-  Amihud, Y. (2002). Illiquidity and stock returns: Cross-section and
-  time-series effects. \emph{Journal of Financial Markets}, 5(1),
-  31--56.
-\item
-  Bouchaud, J.-P., Farmer, J. D. \& Lillo, F. (2008). How markets slowly
-  digest changes in supply and demand. In T. Hens \& K. Schenk-Hoppé
-  (Eds.), \emph{Handbook of Financial Markets: Dynamics and Evolution}
-  (pp.~57--160). North-Holland.
-\item
-  Carter, N. \& Jeng, L. (2023). Ordinals and the fee market. \emph{Coin
-  Metrics State of the Network}.
-\item
-  Chen, Y. et al.~(2025). Bitcoin ETF impact on futures markets.
-  \emph{International Review of Financial Analysis}.
-\item
-  Cong, L. W., He, Z. \& Li, J. (2021). Decentralized mining in
-  centralized pools. \emph{Review of Financial Studies}, 34(3),
-  1191--1235.
-\item
-  Easley, D., O'Hara, M. \& Basu, S. (2019). From mining to markets: The
-  role of Bitcoin transaction fees. \emph{Journal of Financial
-  Economics}, 134(1), 91--109.
-\item
-  Gencer, A. E. et al.~(2018). Decentralization in Bitcoin and Ethereum
-  networks. \emph{Proceedings of NDSS 2018}.
-\item
-  Judmayer, A. et al.~(2021). Estimating the cost of a 51\% attack.
-  \emph{Financial Cryptography and Data Security (FC 2021)}.
-\item
-  Makarov, I. \& Schoar, A. (2020). Trading and arbitrage in
-  cryptocurrency markets. \emph{Journal of Financial Economics}, 135(2),
-  293--319.
-\item
-  Nakamoto, S. (2008). Bitcoin: A peer-to-peer electronic cash system.
-  \emph{bitcoin.org/bitcoin.pdf}.
-\item
-  Noda, A. (2020). On the evolution of cryptocurrency market efficiency.
-  \emph{Applied Economics Letters}, 28(6), 433--439.
-\item
-  Prat, J. \& Walter, B. (2021). An equilibrium model of the market for
-  Bitcoin mining. \emph{Journal of Political Economy}, 129(8),
-  2415--2452.
-\item
-  Vernetti, F. (2023). Stratum V2: The next generation protocol for
-  pooled mining. \emph{Braiins Technical Documentation}.
-\item
-  Wendl, M. et al.~(2025). Bitcoin Ordinals: A systematic analysis.
-  \emph{Journal of The British Blockchain Association (JBBA)}.
-\end{enumerate}
+\hypertarget{refs}{}
+\begin{CSLReferences}{1}{0}
+\leavevmode\vadjust pre{\hypertarget{ref-almgren2001}{}}%
+Almgren, Robert, and Neil Chriss. 2001. {``Optimal Execution of
+Portfolio Transactions.''} \emph{Journal of Risk} 3 (2): 5--39.
+
+\leavevmode\vadjust pre{\hypertarget{ref-amihud2002}{}}%
+Amihud, Yakov. 2002. {``Illiquidity and Stock Returns: Cross-Section and
+Time-Series Effects.''} \emph{Journal of Financial Markets} 5 (1):
+31--56.
+
+\leavevmode\vadjust pre{\hypertarget{ref-bouchaud2008}{}}%
+Bouchaud, Jean-Philippe, J. Doyne Farmer, and Fabrizio Lillo. 2008.
+{``How Markets Slowly Digest Changes in Supply and Demand.''} In
+\emph{Handbook of Financial Markets: Dynamics and Evolution}, edited by
+Thorsten Hens and Klaus Reiner Schenk-Hoppé, 57--160. North-Holland.
+
+\leavevmode\vadjust pre{\hypertarget{ref-carter2023}{}}%
+Carter, Nic, and Linda Jeng. 2023. {``Ordinals and the Fee Market.''}
+\emph{Coin Metrics State of the Network}.
+
+\leavevmode\vadjust pre{\hypertarget{ref-chen2025}{}}%
+Chen, Yifan et al. 2025. {``Bitcoin {ETF} Impact on Futures Markets.''}
+\emph{International Review of Financial Analysis}.
+
+\leavevmode\vadjust pre{\hypertarget{ref-cong2021}{}}%
+Cong, Lin William, Zhiguo He, and Jiasun Li. 2021. {``Decentralized
+Mining in Centralized Pools.''} \emph{Review of Financial Studies} 34
+(3): 1191--1235.
+
+\leavevmode\vadjust pre{\hypertarget{ref-easley2019}{}}%
+Easley, David, Maureen O'Hara, and Soumya Basu. 2019. {``From Mining to
+Markets: The Role of {Bitcoin} Transaction Fees.''} \emph{Journal of
+Financial Economics} 134 (1): 91--109.
+
+\leavevmode\vadjust pre{\hypertarget{ref-gencer2018}{}}%
+Gencer, Adem Efe et al. 2018. {``Decentralization in {Bitcoin} and
+{Ethereum} Networks.''} In \emph{Proceedings of NDSS 2018}.
+
+\leavevmode\vadjust pre{\hypertarget{ref-judmayer2021}{}}%
+Judmayer, Aljosha et al. 2021. {``Estimating the Cost of a 51\%
+Attack.''} In \emph{Financial Cryptography and Data Security (FC 2021)}.
+
+\leavevmode\vadjust pre{\hypertarget{ref-makarov2020}{}}%
+Makarov, Igor, and Antoinette Schoar. 2020. {``Trading and Arbitrage in
+Cryptocurrency Markets.''} \emph{Journal of Financial Economics} 135
+(2): 293--319.
+
+\leavevmode\vadjust pre{\hypertarget{ref-nakamoto2008}{}}%
+Nakamoto, Satoshi. 2008. {``Bitcoin: A Peer-to-Peer Electronic Cash
+System.''} \url{https://bitcoin.org/bitcoin.pdf}.
+
+\leavevmode\vadjust pre{\hypertarget{ref-noda2020}{}}%
+Noda, Akihiko. 2020. {``On the Evolution of Cryptocurrency Market
+Efficiency.''} \emph{Applied Economics Letters} 28 (6): 433--39.
+
+\leavevmode\vadjust pre{\hypertarget{ref-prat2021}{}}%
+Prat, Julien, and Benjamin Walter. 2021. {``An Equilibrium Model of the
+Market for {Bitcoin} Mining.''} \emph{Journal of Political Economy} 129
+(8): 2415--52.
+
+\leavevmode\vadjust pre{\hypertarget{ref-vernetti2023}{}}%
+Vernetti, Filippo. 2023. {``Stratum {V2}: The Next Generation Protocol
+for Pooled Mining.''} Braiins Technical Documentation.
+
+\leavevmode\vadjust pre{\hypertarget{ref-wendl2025}{}}%
+Wendl, Markus et al. 2025. {``Bitcoin {Ordinals}: A Systematic
+Analysis.''} \emph{Journal of The British Blockchain Association
+(JBBA)}.
+
+\end{CSLReferences}
 
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
 \hypertarget{appendix-a-technical-implementation}{%
-\section{Appendix A: Technical
+\section*{Appendix A: Technical
 Implementation}\label{appendix-a-technical-implementation}}
+\addcontentsline{toc}{section}{Appendix A: Technical Implementation}
 
 All models are implemented in Python 3.12+ and available at:
-\texttt{https://github.com/IngoGiebel/powsec-models}
+\href{https://github.com/IngoGiebel/powsec-models}{github.com/IngoGiebel/powsec-models}
 
 \hypertarget{dependencies}{%
-\subsection{Dependencies}\label{dependencies}}
+\subsection*{Dependencies}\label{dependencies}}
+\addcontentsline{toc}{subsection}{Dependencies}
 
 \begin{verbatim}
 pandas, numpy, matplotlib, scipy, yfinance, requests
 \end{verbatim}
 
 \hypertarget{reproduction}{%
-\subsection{Reproduction}\label{reproduction}}
+\subsection*{Reproduction}\label{reproduction}}
+\addcontentsline{toc}{subsection}{Reproduction}
 
 \begin{Shaded}
 \begin{Highlighting}[]
@@ -1364,12 +1438,14 @@ Output: \texttt{output/} directory with PNG visualizations and CSV data
 files.
 
 \hypertarget{appendix-b-model-parameters}{%
-\section{Appendix B: Model
+\section*{Appendix B: Model
 Parameters}\label{appendix-b-model-parameters}}
+\addcontentsline{toc}{section}{Appendix B: Model Parameters}
 
 \hypertarget{b.1-miner-stress-parameters}{%
-\subsection{B.1 Miner Stress
+\subsection*{B.1 Miner Stress
 Parameters}\label{b.1-miner-stress-parameters}}
+\addcontentsline{toc}{subsection}{B.1 Miner Stress Parameters}
 
 \textbf{Table 5: Miner Stress Model Parameters.} Input parameters for
 the miner capitulation and difficulty adjustment model, sourced from
@@ -1400,8 +1476,9 @@ Logistic steepness & k = 5.0 & Calibrated for gradual transition \\
 \end{longtable}
 
 \hypertarget{b.2-content-pollution-parameters}{%
-\subsection{B.2 Content Pollution
+\subsection*{B.2 Content Pollution
 Parameters}\label{b.2-content-pollution-parameters}}
+\addcontentsline{toc}{subsection}{B.2 Content Pollution Parameters}
 
 \textbf{Table 6: Content Pollution Model Parameters.} Parameters
 governing the inscription density, fee pushback, and flagging
@@ -1432,8 +1509,9 @@ Flag sensitivity & 50× scaling & 0.2\% flagged ≈ significant \\
 \end{longtable}
 
 \hypertarget{b.3-hashrate-concentration-parameters}{%
-\subsection{B.3 Hashrate Concentration
+\subsection*{B.3 Hashrate Concentration
 Parameters}\label{b.3-hashrate-concentration-parameters}}
+\addcontentsline{toc}{subsection}{B.3 Hashrate Concentration Parameters}
 
 \textbf{Table 7: Hashrate Concentration Model Parameters.} Data sources
 for mining pool shares, geographic distribution, and regulatory
@@ -1463,8 +1541,9 @@ KYC/Gov compliance multipliers & 0.1×--2.0× & Expert estimate
 \end{longtable}
 
 \hypertarget{b.4-institutional-exit-parameters}{%
-\subsection{B.4 Institutional Exit
+\subsection*{B.4 Institutional Exit
 Parameters}\label{b.4-institutional-exit-parameters}}
+\addcontentsline{toc}{subsection}{B.4 Institutional Exit Parameters}
 
 \textbf{Table 8: Institutional Exit Cascade Parameters.} Calibration
 values for the market impact model governing ETF-driven selling
