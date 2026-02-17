@@ -24,6 +24,7 @@ bibliography: references.bib
 ---
 
 **Repository:** [github.com/IngoGiebel/powsec-models](https://github.com/IngoGiebel/powsec-models)  
+**DOI:** [10.5281/zenodo.18673975](https://doi.org/10.5281/zenodo.18673975)  
 **License:** MIT  
 
 ---

@@ -1,5 +1,7 @@
 # PoW Security Models (`powsec-models`)
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18673975.svg)](https://doi.org/10.5281/zenodo.18673975)
+
 Quantitative models analyzing Bitcoin's Proof-of-Work security from multiple angles: miner economics, content pollution, hashrate concentration, and institutional compliance risk.
 
 ## Modules
