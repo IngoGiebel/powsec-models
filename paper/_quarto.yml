@@ -12,3 +12,4 @@ format:
     linkcolor: blue
     citecolor: blue
     urlcolor: blue
+    fig-pos: "H"

@@ -5,7 +5,7 @@ author:
     affiliations:
       - name: Independent Researcher
     orcid: 0009-0005-4238-000X
-date: "February 2026"
+date: "February 17, 2026"
 abstract: |
   We present a quantitative framework for assessing systemic risks in Bitcoin's Proof-of-Work (PoW) security model through four interconnected simulation models. Our analysis examines (1) miner capitulation dynamics under price stress with difficulty adjustment feedback, (2) blockchain content pollution via Ordinals and OP_RETURN abuse with fee-market dampening, (3) hashrate concentration and censorship resistance, and (4) institutional exit cascades triggered by compliance concerns using Almgren-Chriss optimal execution modeling. Results indicate critical vulnerabilities: a Nakamoto Coefficient of only 3, content pollution approaching ~40% saturation (down from earlier estimates after incorporating fee-market dynamics), and a potential institutional exit cascade scenario. We employ a continuous-time partial adjustment for the Difficulty Adjustment Algorithm (DAA) to capture the stabilizing feedback of difficulty reduction during miner capitulation events. Additionally, the growing trend of Bitcoin miners pivoting to AI/HPC hosting (e.g., TeraWulf with Google Cloud, Core Scientific with CoreWeave) introduces a structural shift in miner economics that reduces hashrate concentration risk while increasing the vulnerability of pure-play BTC miners. These findings suggest that Bitcoin's security guarantees may be more fragile than commonly assumed, though endogenous stabilization mechanisms (difficulty adjustment, fee markets) provide meaningful resilience.
 keywords:
@@ -20,6 +20,8 @@ keywords:
   - ETF compliance
   - Almgren-Chriss
   - difficulty adjustment
+  - game theory
+  - strategic actors
 bibliography: references.bib
 ---
 
@@ -408,7 +410,7 @@ These findings quantify the risk landscape to enable informed decision-making by
 
 ## Data and Code Availability {.unnumbered}
 
-The complete Python 3.12+ simulation suite, parameter sets, and reproducible output datasets are available under the MIT License at [github.com/IngoGiebel/powsec-models](https://github.com/IngoGiebel/powsec-models) and permanently archived via Zenodo (DOI: pending).
+The complete Python 3.12+ simulation suite, parameter sets, and reproducible output datasets are available under the MIT License at [github.com/IngoGiebel/powsec-models](https://github.com/IngoGiebel/powsec-models) and permanently archived via Zenodo (DOI: [10.5281/zenodo.18673975](https://doi.org/10.5281/zenodo.18673975)).
 
 ## Conflicts of Interest {.unnumbered}
 
@@ -440,7 +442,7 @@ python hashrate_concentration.py
 python institutional_exit.py
 ```
 
-Output: `output/` directory with PNG visualizations and CSV data files.
+Output: `output/` directory with PDF vector visualizations and CSV data files.
 
 ## Appendix B: Model Parameters {.unnumbered}
 
@@ -490,4 +492,4 @@ Calibration values for the market impact model governing ETF-driven selling casc
 
 ---
 
-*This research was conducted with AI assistance from Claude (Anthropic) for analysis coordination and code generation, and reviewed by Google Gemini 3 Deep Think for mathematical validation.*
+*This research was conducted with AI assistance from Claude (Anthropic) for analysis coordination and code generation, and reviewed by Google Gemini 3 Deep Think for mathematical validation, structural peer review, and game-theoretic analysis.*

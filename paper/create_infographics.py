@@ -136,9 +136,7 @@ def create_bitcoin_mining_flow():
     draw_curved_arrow(ax, 8.6, 2.45, 4.9, 4.85, color=GRAY, lw=1.0, rad=-0.2, style='->')
     ax.text(7.3, 3.45, 'adjusts\ntarget', ha='center', fontsize=6.5, color=GRAY, style='italic')
 
-    # Subtle border
-    rect = plt.Rectangle((0.15, 0.4), 9.55, 6.5, fill=False, edgecolor=GRAY_LIGHT, linewidth=1)
-    ax.add_patch(rect)
+    # Border removed for cleaner academic presentation
 
     plt.tight_layout()
     path = os.path.join(OUTPUT_DIR, 'bitcoin_mining_flow.pdf')
@@ -185,31 +183,31 @@ def create_risk_vector_map():
     # === DESTABILIZING LOOPS (red) ===
     # Price decline → miner exit → concentration ↑
     draw_curved_arrow(ax, 0.9, 1.75, 2.1, 0.45, color=RED, lw=2.0, rad=-0.3)
-    ax.text(2.3, 1.2, 'miner exit →\nconcentration ↑', fontsize=6.5, color=RED,
+    ax.text(2.3, 1.2, 'miner exit →\nconcentration ↑', fontsize=8.5, color=RED,
             ha='left', style='italic')
 
     # Pollution → compliance → institutional exit
     draw_curved_arrow(ax, -2.1, -0.45, -0.9, -1.75, color=RED, lw=2.0, rad=-0.3)
-    ax.text(-3.5, -1.3, 'compliance\ntrigger', fontsize=6.5, color=RED,
+    ax.text(-3.5, -1.3, 'compliance\ntrigger', fontsize=8.5, color=RED,
             ha='center', style='italic')
 
     # Institutional exit → price decline → miner exit
     draw_curved_arrow(ax, -0.9, -1.75, -2.1, -0.45, color=RED, lw=2.0, rad=0.5)
-    ax.text(-2.3, -1.5, 'price\ndecline', fontsize=6.5, color=RED, ha='center', style='italic')
+    ax.text(-2.3, -1.5, 'price\ndecline', fontsize=8.5, color=RED, ha='center', style='italic')
     
     draw_curved_arrow(ax, -2.1, 0.45, -0.9, 1.75, color=RED, lw=2.0, rad=-0.3)
-    ax.text(-2.5, 1.2, 'price decline\n→ miner exit', fontsize=6.5, color=RED,
+    ax.text(-2.5, 1.2, 'price decline\n→ miner exit', fontsize=8.5, color=RED,
             ha='center', style='italic')
 
     # === STABILIZING LOOPS (green) ===
     # Miner exit → DAA → lower breakeven
     draw_curved_arrow(ax, 0.9, 1.75, 2.1, 0.45, color=GREEN, lw=2.0, rad=0.4)
-    ax.text(2.5, 0.6, 'DAA adjustment\n→ lower breakeven', fontsize=6.5, color=GREEN,
+    ax.text(2.5, 0.6, 'DAA adjustment\n→ lower breakeven', fontsize=8.5, color=GREEN,
             ha='left', style='italic')
 
     # Pollution ↑ → fees ↑ → pushback → pollution ↓
     draw_curved_arrow(ax, -3.2, -0.45, -3.2, 0.0, color=GREEN, lw=2.0, rad=-2.5)
-    ax.text(-4.7, -0.0, 'fees ↑ →\npushback →\npollution ↓', fontsize=6.5, color=GREEN,
+    ax.text(-4.2, -0.0, 'fees ↑ →\npushback →\npollution ↓', fontsize=8.5, color=GREEN,
             ha='center', style='italic')
 
     # Legend
