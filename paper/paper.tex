@@ -269,7 +269,7 @@ risk \sep content pollution \sep Ordinals \sep ETF
 compliance \sep Almgren-Chriss \sep 
 difficulty adjustment
 
-\ifdefined\Shaded\renewenvironment{Shaded}{\begin{tcolorbox}[borderline west={3pt}{0pt}{shadecolor}, breakable, frame hidden, interior hidden, sharp corners, boxrule=0pt, enhanced]}{\end{tcolorbox}}\fi
+\ifdefined\Shaded\renewenvironment{Shaded}{\begin{tcolorbox}[breakable, borderline west={3pt}{0pt}{shadecolor}, boxrule=0pt, interior hidden, enhanced, frame hidden, sharp corners]}{\end{tcolorbox}}\fi
 
 \textbf{Repository:}
 \href{https://github.com/IngoGiebel/powsec-models}{github.com/IngoGiebel/powsec-models}\\
@@ -1232,7 +1232,13 @@ algorithmic liquidations. The game-theoretic incentive is clear: with
 approximately \$30B in daily spot volume, a coordinated sell-off of
 \$2--5B could trigger cascading liquidations worth multiples of the
 initial position --- a rational strategy given sufficient capital and
-risk appetite.
+risk appetite. An even more asymmetric variant is \emph{weaponized block
+space pollution}: an attacker could spend \$10--20M in transaction fees
+to saturate the blockchain with OFAC-sanctioned data or hyper-toxic
+inscriptions, artificially triggering the ESG/compliance algorithms of
+institutional holders (Section 3.4) while profiting massively on
+pre-established short positions --- a fraction of the capital required
+for a direct spot sell-off.
 
 \textbf{Competing blockchain ecosystems.} Ethereum's transition to
 Proof-of-Stake (PoS) created an implicit competitive dynamic: every
@@ -1243,7 +1249,13 @@ consumption criticism, funding content pollution research, or lobbying
 for PoW-specific regulation (as attempted in the EU's MiCA
 deliberations) --- represents a low-cost, plausibly-deniable strategy.
 The game-theoretic equilibrium depends on whether investors view BTC and
-ETH as complements or substitutes.
+ETH as complements or substitutes. Notably, environmental activist
+organizations --- such as Greenpeace's 2022 ``Change the Code''
+campaign, partly funded by competing cryptocurrency foundations ---
+serve as narrative force multipliers, lobbying institutional investors
+to divest from PoW assets on ESG grounds and thereby functioning as
+unwitting catalysts for the institutional exit cascades modeled in
+Section 3.4.
 
 \textbf{Incumbent financial institutions.} Traditional financial
 intermediaries face disintermediation risk from Bitcoin adoption. Banks
@@ -1253,10 +1265,10 @@ monetary intermediation have a rational interest in regulatory capture
 financial institutions can offer Bitcoin exposure, effectively
 re-intermediating the disintermediation. The irony of spot Bitcoin ETFs
 is that they simultaneously legitimize Bitcoin \emph{and} channel its
-adoption through incumbent gatekeepers, creating a Nash equilibrium
-where banks profit from Bitcoin's success while retaining the option to
-advocate for restrictive regulation if self-custody adoption threatens
-their business model.
+adoption through incumbent gatekeepers, creating a stable strategic
+hedge where banks profit from Bitcoin's success while retaining the real
+option to advocate for restrictive regulation if self-custody adoption
+threatens their business model.
 
 \textbf{Large miners as strategic consolidators.} Our miner capitulation
 model (Section 3.1) assumes miners are price-takers. However, the
@@ -1278,10 +1290,10 @@ is simultaneously private (pseudonymous addresses) and maximally
 transparent (every transaction permanently visible). Intelligence
 agencies may rationally prefer Bitcoin to remain viable but not dominant
 --- large enough to serve as a traceable financial surveillance tool,
-small enough not to threaten monetary sovereignty. This creates a
-game-theoretic equilibrium where certain state actors simultaneously
-\emph{regulate} Bitcoin publicly while \emph{utilize} its surveillance
-properties covertly, a dual-use dynamic with no stable endpoint.
+small enough not to threaten monetary sovereignty. This creates a stable
+dual-use posture where certain state actors simultaneously
+\emph{regulate} Bitcoin publicly while \emph{utilizing} its surveillance
+properties covertly --- a strategic dilemma with no stable endpoint.
 
 \textbf{Implications for risk assessment.} The existence of multiple
 actors with rational incentives to attack Bitcoin transforms our four
