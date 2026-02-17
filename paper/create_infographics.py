@@ -141,7 +141,7 @@ def create_bitcoin_mining_flow():
     ax.add_patch(rect)
 
     plt.tight_layout()
-    path = os.path.join(OUTPUT_DIR, 'bitcoin_mining_flow.png')
+    path = os.path.join(OUTPUT_DIR, 'bitcoin_mining_flow.pdf')
     fig.savefig(path, dpi=300, bbox_inches='tight', facecolor=WHITE)
     plt.close(fig)
     print(f'Saved {path}')
@@ -225,7 +225,7 @@ def create_risk_vector_map():
     ax.text(1.9, legend_y, 'Stabilizing feedback', fontsize=8, color=GREEN, va='center')
 
     plt.tight_layout()
-    path = os.path.join(OUTPUT_DIR, 'risk_vector_map.png')
+    path = os.path.join(OUTPUT_DIR, 'risk_vector_map.pdf')
     fig.savefig(path, dpi=300, bbox_inches='tight', facecolor=WHITE)
     plt.close(fig)
     print(f'Saved {path}')
@@ -338,7 +338,7 @@ def create_fee_market_thermostat():
     ax_bar.text(financial/2, 0, f'{financial}%', ha='center', va='center', fontsize=8, fontweight='bold', color=WHITE)
     ax_bar.text(financial + inscriptions/2, 0, f'{inscriptions}%', ha='center', va='center', fontsize=8, fontweight='bold', color=WHITE)
 
-    path = os.path.join(OUTPUT_DIR, 'fee_market_thermostat.png')
+    path = os.path.join(OUTPUT_DIR, 'fee_market_thermostat.pdf')
     fig.savefig(path, dpi=300, bbox_inches='tight', facecolor=WHITE)
     plt.close(fig)
     print(f'Saved {path}')

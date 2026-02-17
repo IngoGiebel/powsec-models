@@ -494,7 +494,7 @@ def plot_concentration_analysis(
 
     if output_path:
         os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
-        fig.savefig(output_path, dpi=150, bbox_inches="tight")
+        fig.savefig(output_path, bbox_inches="tight")
         print(f"  📊 Plot saved to {output_path}")
 
     plt.close(fig)
@@ -556,7 +556,7 @@ if __name__ == "__main__":
     script_dir = Path(__file__).parent
     output_dir = script_dir / "output"
     output_dir.mkdir(exist_ok=True)
-    output_path = output_dir / "hashrate_concentration.png"
+    output_path = output_dir / "hashrate_concentration.pdf"
 
     print(f"\n💾 Saving visualization...")
     plot_concentration_analysis(DEFAULT_POOLS, DEFAULT_REGIONS, scenario_df, str(output_path))

@@ -520,7 +520,7 @@ def plot_stress_test(
 
     if output_path:
         os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
-        fig.savefig(output_path, dpi=150, bbox_inches="tight")
+        fig.savefig(output_path, bbox_inches="tight")
         print(f"  📊 Plot saved to {output_path}")
 
     plt.close(fig)
@@ -583,7 +583,7 @@ if __name__ == "__main__":
     script_dir = Path(__file__).parent
     output_dir = script_dir / "output"
     output_dir.mkdir(exist_ok=True)
-    output_path = output_dir / "stress_test.png"
+    output_path = output_dir / "stress_test.pdf"
 
     print(f"\n💾 Saving visualization...")
     plot_stress_test(df, output_path=str(output_path))
